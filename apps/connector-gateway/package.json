@@ -1,0 +1,1 @@
+{"name":"@zolt/connector-gateway","version":"0.1.0","private":true,"type":"module","main":"dist/index.js","types":"dist/index.d.ts","scripts":{"build":"tsc -b"},"dependencies":{"fastify":"^5.2.0","@zolt/auth":"workspace:*","@zolt/contracts":"workspace:*","@zolt/connector-gridflex":"workspace:*","@zolt/database":"workspace:*","@zolt/queue":"workspace:*"}}

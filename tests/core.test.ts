@@ -1,0 +1,3 @@
+import { describe,it,expect } from "vitest";
+import { assertTransition, assertAdvisoryOnly, deduplicationKey } from "../packages/core/src/index.js";
+describe("Zolt safety and lifecycle",()=>{it("allows valid transition",()=>expect(()=>assertTransition("PROPOSED","APPROVED")).not.toThrow());it("blocks invalid transition",()=>expect(()=>assertTransition("REJECTED","APPROVED")).toThrow());it("enforces advisory mode",()=>expect(()=>assertAdvisoryOnly({advisoryOnly:false})).toThrow("SAFETY_POLICY_VIOLATION"));it("creates stable dedup keys",()=>expect(deduplicationKey({tenant:"a",type:"x"})).toBe(deduplicationKey({tenant:"a",type:"x"})));});

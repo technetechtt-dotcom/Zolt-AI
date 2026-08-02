@@ -1,0 +1,20 @@
+{
+  "name": "@zolt/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "fastify": "^5.2.0",
+    "@zolt/auth": "workspace:*",
+    "@zolt/database": "workspace:*",
+    "@zolt/observability": "workspace:*",
+    "@zolt/contracts": "workspace:*",
+    "@zolt/core": "workspace:*",
+    "@zolt/capability-energy": "workspace:*"
+  }
+}

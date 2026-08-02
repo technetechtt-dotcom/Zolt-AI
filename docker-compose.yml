@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: zolt, POSTGRES_PASSWORD: zolt, POSTGRES_DB: zolt }
+    ports: ["5432:5432"]
+    volumes: ["zolt-postgres:/var/lib/postgresql/data"]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+  mqtt:
+    image: eclipse-mosquitto:2
+    ports: ["1883:1883"]
+volumes: { zolt-postgres: {} }

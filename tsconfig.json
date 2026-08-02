@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    {"path":"packages/contracts"},{"path":"packages/connector-sdk"},{"path":"packages/capability-sdk"},
+    {"path":"packages/core"},{"path":"packages/database"},{"path":"packages/auth"},{"path":"packages/queue"},{"path":"packages/observability"},
+    {"path":"connectors/gridflex"},{"path":"capability-packs/energy"},
+    {"path":"apps/api"},{"path":"apps/connector-gateway"},{"path":"apps/worker"}
+  ]
+}

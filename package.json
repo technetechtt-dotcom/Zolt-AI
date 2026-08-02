@@ -1,0 +1,38 @@
+{
+  "name": "zolt-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone advisory industrial intelligence platform",
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "dev:api": "tsx apps/api/src/server.ts",
+    "dev:gateway": "tsx apps/connector-gateway/src/server.ts",
+    "dev:worker": "tsx apps/worker/src/index.ts",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "db:validate": "prisma validate --schema packages/database/prisma/schema.prisma",
+    "db:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
+    "db:deploy": "prisma migrate deploy --schema packages/database/prisma/schema.prisma",
+    "db:seed": "tsx packages/database/prisma/seed.ts",
+    "smoke:e2e": "tsx scripts/smoke-e2e.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.1.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.2.0",
+    "zod": "^3.24.1"
+  }
+}
