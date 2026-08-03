@@ -13,6 +13,7 @@
     "@zolt/auth": "workspace:*",
     "@zolt/database": "workspace:*",
     "@zolt/observability": "workspace:*",
+    "@zolt/queue": "workspace:*",
     "@zolt/contracts": "workspace:*",
     "@zolt/core": "workspace:*",
     "@zolt/capability-energy": "workspace:*"

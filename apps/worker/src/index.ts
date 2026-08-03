@@ -10,8 +10,13 @@ import {
   saveTelemetryEnvelope,
   writeAuditEvent
 } from "@zolt/database";
-import { logError } from "@zolt/observability";
-import { enqueueWebhookDelivery, TELEMETRY_INGEST_QUEUE, WEBHOOK_DELIVERY_QUEUE } from "@zolt/queue";
+import { logError, logInfo } from "@zolt/observability";
+import {
+  enqueueDeadLetter,
+  enqueueWebhookDelivery,
+  TELEMETRY_INGEST_QUEUE,
+  WEBHOOK_DELIVERY_QUEUE
+} from "@zolt/queue";
 import { deliverWebhookPayload } from "./webhook-dispatcher.js";
 
 const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
@@ -20,7 +25,31 @@ const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
 
 const orchestrator = new AnalysisOrchestrator([telemetryHealthSkill, curtailmentRiskSkill]);
 
-new Worker<ZoltTelemetryEnvelope>(
+function webhookTargetForTenant(tenantId: string): { url: string; secret?: string } | null {
+  const explicit = process.env.ZOLT_WEBHOOK_TARGETS;
+  if (explicit) {
+    try {
+      const parsed = JSON.parse(explicit) as Record<string, { url?: string; secret?: string }>;
+      const target = parsed[tenantId];
+      if (target?.url) {
+        return { url: target.url, secret: target.secret };
+      }
+    } catch (error) {
+      logError("worker.webhookTargetParse", error);
+    }
+  }
+
+  if (process.env.ZOLT_WEBHOOK_URL) {
+    return {
+      url: process.env.ZOLT_WEBHOOK_URL,
+      secret: process.env.ZOLT_WEBHOOK_SECRET
+    };
+  }
+
+  return null;
+}
+
+const telemetryWorker = new Worker<ZoltTelemetryEnvelope>(
   TELEMETRY_INGEST_QUEUE,
   async (job) => {
     const envelope = job.data;
@@ -57,40 +86,56 @@ new Worker<ZoltTelemetryEnvelope>(
         correlationId: recommendation.id
       });
 
-      if (process.env.ZOLT_WEBHOOK_URL) {
+      const target = webhookTargetForTenant(recommendation.tenantId);
+      if (target) {
         await enqueueWebhookDelivery({
           tenantId: recommendation.tenantId,
           eventType: "recommendation.created",
           recommendationId: recommendation.id,
-          webhookUrl: process.env.ZOLT_WEBHOOK_URL,
+          webhookUrl: target.url,
+          webhookSecret: target.secret,
           payload: recommendation as unknown as Record<string, unknown>
         });
       }
     }
   },
   { connection: redis, concurrency: Number(process.env.WORKER_CONCURRENCY ?? 5) }
-).on("failed", (_job, error) => {
+).on("failed", (job, error) => {
   logError("worker.telemetry", error);
+  void enqueueDeadLetter({
+    queue: TELEMETRY_INGEST_QUEUE,
+    reason: error instanceof Error ? error.message : String(error),
+    payload: (job?.data ?? {}) as Record<string, unknown>
+  });
 });
 
-new Worker(
+const webhookWorker = new Worker(
   WEBHOOK_DELIVERY_QUEUE,
   async (job) => {
     await deliverWebhookPayload(job.data);
   },
   { connection: redis }
-).on("failed", (_job, error) => {
+).on("failed", (job, error) => {
   logError("worker.webhook", error);
+  void enqueueDeadLetter({
+    queue: WEBHOOK_DELIVERY_QUEUE,
+    reason: error instanceof Error ? error.message : String(error),
+    payload: (job?.data ?? {}) as Record<string, unknown>
+  });
 });
 
-console.log("Zolt worker online");
+logInfo("worker.start", { message: "Zolt worker online" });
 
 process.on("SIGINT", async () => {
+  await telemetryWorker.close();
+  await webhookWorker.close();
   await redis.quit();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
+  await telemetryWorker.close();
+  await webhookWorker.close();
   await redis.quit();
   process.exit(0);
 });

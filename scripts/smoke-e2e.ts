@@ -99,6 +99,21 @@ async function main(): Promise<void> {
 
   const persisted = (await recResponse.json()) as Array<{ id: string; type: string; title: string }>;
 
+  if (analysisBody.recommendations.length === 0) {
+    throw new Error("Smoke generated zero recommendations.");
+  }
+  if (persisted.length === 0) {
+    throw new Error("Smoke found zero persisted recommendations.");
+  }
+
+  const generatedIds = new Set(analysisBody.recommendations.map((item) => item.id));
+  const persistedIds = new Set(persisted.map((item) => item.id));
+  for (const recommendationId of generatedIds) {
+    if (!persistedIds.has(recommendationId)) {
+      throw new Error(`Recommendation ${recommendationId} was generated but not persisted.`);
+    }
+  }
+
   console.log("Smoke completed", {
     advisoryOnly: analysisBody.advisoryOnly,
     generatedRecommendationCount: analysisBody.recommendations.length,

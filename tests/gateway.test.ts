@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ZoltTelemetryEnvelope } from "../packages/contracts/src/index.js";
 import type { GatewayDependencies } from "../apps/connector-gateway/src/server.js";
 import { createTestTelemetryEnvelope } from "./helpers/fixtures.js";
@@ -33,15 +33,20 @@ function createGatewayDependencies(): GatewayDependencies {
         return [message];
       })
     } as GatewayDependencies["connector"],
-    saveTelemetryEnvelope: vi.fn(async () => undefined),
     enqueueTelemetry: vi.fn(async () => undefined),
-    forwardToApi: vi.fn(async () => undefined)
+    verifyTenantAccess: vi.fn(async () => true),
+    readinessCheck: vi.fn(async () => true)
   };
 }
+
+beforeEach(() => {
+  process.env.ZOLT_ALLOW_INSECURE_AUTH = "true";
+});
 
 afterEach(() => {
   delete process.env.ZOLT_API_KEY;
   delete process.env.ZOLT_INGEST_HMAC_SECRET;
+  delete process.env.ZOLT_ALLOW_INSECURE_AUTH;
 });
 
 describe("Gateway routes", () => {
@@ -79,7 +84,7 @@ describe("Gateway routes", () => {
     await app.close();
   });
 
-  it("ingests valid payload and persists + enqueues telemetry", async () => {
+  it("ingests valid payload and enqueues telemetry", async () => {
     const deps = createGatewayDependencies();
     const app = buildGatewayApp(deps, { logger: false });
 
@@ -100,17 +105,13 @@ describe("Gateway routes", () => {
     });
 
     expect(response.statusCode).toBe(202);
-    expect(deps.saveTelemetryEnvelope).toHaveBeenCalledTimes(1);
-    expect(deps.forwardToApi).toHaveBeenCalledTimes(1);
     expect(deps.enqueueTelemetry).toHaveBeenCalledTimes(1);
     await app.close();
   });
 
-  it("still accepts ingest when API forwarding fails", async () => {
+  it("rejects unauthorized tenant identity", async () => {
     const deps = createGatewayDependencies();
-    deps.forwardToApi = vi.fn(async () => {
-      throw new Error("API unavailable");
-    });
+    deps.verifyTenantAccess = vi.fn(async () => false);
     const app = buildGatewayApp(deps, { logger: false });
 
     const response = await app.inject({
@@ -129,9 +130,7 @@ describe("Gateway routes", () => {
       }
     });
 
-    expect(response.statusCode).toBe(202);
-    expect(deps.saveTelemetryEnvelope).toHaveBeenCalledTimes(1);
-    expect(deps.enqueueTelemetry).toHaveBeenCalledTimes(1);
+    expect(response.statusCode).toBe(403);
     await app.close();
   });
 });

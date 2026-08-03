@@ -7,6 +7,19 @@ describe("Auth middleware", () => {
   afterEach(() => {
     delete process.env.ZOLT_API_KEY;
     delete process.env.ZOLT_INGEST_HMAC_SECRET;
+    delete process.env.ZOLT_ALLOW_INSECURE_AUTH;
+  });
+
+  it("fails closed when API key is not configured", async () => {
+    const app = Fastify();
+    app.post("/secure", { preHandler: requireApiKey }, async () => ({ ok: true }));
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/secure"
+    });
+
+    expect(response.statusCode).toBe(503);
   });
 
   it("rejects requests with wrong API key", async () => {
@@ -54,6 +67,19 @@ describe("Auth middleware", () => {
     expect(response.statusCode).toBe(200);
   });
 
+  it("fails closed when ingest secret is not configured", async () => {
+    const app = Fastify();
+    app.post("/ingest", { preHandler: requireSignedIngest }, async () => ({ ok: true }));
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/ingest",
+      payload: { foo: "bar" }
+    });
+
+    expect(response.statusCode).toBe(503);
+  });
+
   it("blocks replayed signed ingest requests", async () => {
     process.env.ZOLT_INGEST_HMAC_SECRET = "signing-secret";
     const app = Fastify();
@@ -92,5 +118,18 @@ describe("Auth middleware", () => {
     });
 
     expect(replayed.statusCode).toBe(409);
+  });
+
+  it("allows insecure auth when explicitly enabled", async () => {
+    process.env.ZOLT_ALLOW_INSECURE_AUTH = "true";
+    const app = Fastify();
+    app.post("/secure", { preHandler: requireApiKey }, async () => ({ ok: true }));
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/secure"
+    });
+
+    expect(response.statusCode).toBe(200);
   });
 });

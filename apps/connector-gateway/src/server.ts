@@ -21,9 +21,13 @@ export interface GatewayDependencies {
     validatePayload: (payload: unknown) => ValidationResult;
     transform: (payload: unknown, context: ConnectorContext) => Promise<ZoltTelemetryEnvelope[]>;
   };
-  saveTelemetryEnvelope: (message: ZoltTelemetryEnvelope) => Promise<void>;
   enqueueTelemetry: (message: ZoltTelemetryEnvelope) => Promise<void>;
-  forwardToApi: (message: ZoltTelemetryEnvelope) => Promise<void>;
+  verifyTenantAccess: (identity: {
+    tenantId: string;
+    productId: string;
+    installationId: string;
+  }) => Promise<boolean>;
+  readinessCheck: () => Promise<boolean>;
 }
 
 export interface GatewayAppOptions {
@@ -38,6 +42,13 @@ export function buildGatewayApp(
   const app = Fastify({ logger: loggerEnabled });
 
   app.get("/health/live", async () => ({ status: "ok", service: "zolt-connector-gateway" }));
+  app.get("/health/ready", async (_req, reply) => {
+    const ready = await dependencies.readinessCheck();
+    if (!ready) {
+      return reply.code(503).send({ status: "degraded", service: "zolt-connector-gateway" });
+    }
+    return { status: "ok", service: "zolt-connector-gateway" };
+  });
 
   app.post(
     "/v1/ingest/gridflex",
@@ -49,6 +60,15 @@ export function buildGatewayApp(
       const installationId = String(h["x-zolt-installation-id"] ?? "");
       if (!tenantId || !productId || !installationId) {
         return reply.code(401).send({ code: "MISSING_INTEGRATION_IDENTITY" });
+      }
+
+      const authorized = await dependencies.verifyTenantAccess({
+        tenantId,
+        productId,
+        installationId
+      });
+      if (!authorized) {
+        return reply.code(403).send({ code: "TENANT_ACCESS_DENIED" });
       }
 
       const validation = dependencies.connector.validatePayload(req.body);
@@ -64,14 +84,6 @@ export function buildGatewayApp(
       });
 
       for (const message of messages) {
-        await dependencies.saveTelemetryEnvelope(message);
-
-        try {
-          await dependencies.forwardToApi(message);
-        } catch {
-          // API may not be available in all deployment modes.
-        }
-
         await dependencies.enqueueTelemetry(message);
       }
 
@@ -83,26 +95,35 @@ export function buildGatewayApp(
 }
 
 export async function startGatewayServer(): Promise<void> {
-  const [{ GridFlexConnector }, database, queue] = await Promise.all([
+  const [{ GridFlexConnector }, queue] = await Promise.all([
     import("@zolt/connector-gridflex"),
-    import("@zolt/database"),
     import("@zolt/queue")
   ]);
 
+  const allowed = new Set(
+    String(process.env.ZOLT_ALLOWED_INSTALLATIONS ?? "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+  );
+
   const dependencies: GatewayDependencies = {
     connector: new GridFlexConnector(),
-    saveTelemetryEnvelope: database.saveTelemetryEnvelope,
     enqueueTelemetry: queue.enqueueTelemetry,
-    forwardToApi: async (message) => {
-      const apiBaseUrl = process.env.ZOLT_API_BASE_URL ?? "http://localhost:4000";
-      await fetch(`${apiBaseUrl}/v1/telemetry`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-zolt-api-key": process.env.ZOLT_API_KEY ?? ""
-        },
-        body: JSON.stringify(message)
-      });
+    verifyTenantAccess: async (identity) => {
+      if (allowed.size === 0) {
+        return process.env.NODE_ENV !== "production";
+      }
+      const key = `${identity.tenantId}:${identity.productId}:${identity.installationId}`;
+      return allowed.has(key);
+    },
+    readinessCheck: async () => {
+      try {
+        await queue.telemetryQueue().waitUntilReady();
+        return true;
+      } catch {
+        return false;
+      }
     }
   };
 

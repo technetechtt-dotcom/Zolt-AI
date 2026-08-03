@@ -1,5 +1,9 @@
 export { prisma } from "./client.js";
-export { ensureInstallationIdentity } from "./repositories/installations.js";
+export {
+  ensureInstallationIdentity,
+  resolveInstallationIdentity,
+  resolveProductIdentity
+} from "./repositories/installations.js";
 export { saveTelemetryEnvelope, listTelemetryForInstallation } from "./repositories/telemetry.js";
 export {
   saveRecommendations,

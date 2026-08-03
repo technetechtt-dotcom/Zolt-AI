@@ -14,13 +14,17 @@
 - [x] Initial Prisma schema
 - [x] Docker development services
 - [x] Core safety tests
+- [x] DB repository layer and initial migration
+- [x] Redis/BullMQ worker scaffolding
+- [x] Signed ingest middleware and replay validation
+- [x] API/gateway route test coverage
+- [x] End-to-end smoke script
 
 ## Next implementation
-- [ ] Production authentication and RBAC
-- [ ] Persistent repositories and migrations
-- [ ] Redis/BullMQ workers
-- [ ] Signed ingestion and replay protection
+- [ ] Production RBAC and scoped credentials per tenant/installation
+- [ ] Hardened replay store operations and key rotation playbooks
 - [ ] Full Energy capability pack
 - [ ] Zolt Console UI
-- [ ] Webhook delivery system
-- [ ] Full integration, security and E2E tests
+- [ ] Tenant-managed webhook registry and delivery signatures policy
+- [ ] Full integration, security and E2E test matrix
+- [ ] Production observability (metrics, tracing, runbooks)

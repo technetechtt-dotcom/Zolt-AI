@@ -1,7 +1,11 @@
 import type { RecommendationStatus, ZoltRecommendation } from "@zolt/contracts";
 import { assertTransition } from "@zolt/core";
 import { prisma } from "../client.js";
-import { ensureInstallationIdentity } from "./installations.js";
+import {
+  ensureInstallationIdentity,
+  resolveInstallationIdentity,
+  resolveProductIdentity
+} from "./installations.js";
 
 export async function saveRecommendations(recommendations: ZoltRecommendation[]): Promise<void> {
   const db = prisma as unknown as any;
@@ -12,8 +16,21 @@ export async function saveRecommendations(recommendations: ZoltRecommendation[])
       installationKey: recommendation.installationId
     });
 
+    const existing = await db.recommendation.findFirst({
+      where: {
+        tenantId: ids.tenantId,
+        productId: ids.productId,
+        installationId: ids.installationId,
+        capabilityPack: recommendation.capabilityPack,
+        skillId: recommendation.skillId,
+        type: recommendation.type,
+        status: "PROPOSED"
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
     await db.recommendation.upsert({
-      where: { id: recommendation.id },
+      where: { id: existing?.id ?? recommendation.id },
       update: {
         title: recommendation.title,
         summary: recommendation.summary,
@@ -34,7 +51,7 @@ export async function saveRecommendations(recommendations: ZoltRecommendation[])
         expiresAt: new Date(recommendation.expiresAt)
       },
       create: {
-        id: recommendation.id,
+        id: existing?.id ?? recommendation.id,
         tenantId: ids.tenantId,
         productId: ids.productId,
         installationId: ids.installationId,
@@ -99,15 +116,47 @@ export async function listRecommendations(input: {
   limit?: number;
 }): Promise<ZoltRecommendation[]> {
   const db = prisma as unknown as any;
-  const where = {
+  let productId: string | undefined;
+  let installationId: string | undefined;
+
+  if (input.productId && input.installationId) {
+    const ids = await resolveInstallationIdentity({
+      tenantKey: input.tenantId,
+      productKey: input.productId,
+      installationKey: input.installationId
+    });
+    productId = ids.productId;
+    installationId = ids.installationId;
+  } else if (input.productId) {
+    const product = await resolveProductIdentity({
+      tenantKey: input.tenantId,
+      productKey: input.productId
+    });
+    productId = product.productId;
+  } else if (input.installationId) {
+    throw new Error("INVALID_RECOMMENDATION_FILTER");
+  }
+
+  const where: Record<string, unknown> = {
     tenantId: input.tenantId,
-    productId: input.productId,
-    installationId: input.installationId,
     status: input.status
   };
+  if (productId) {
+    where.productId = productId;
+  }
+  if (installationId) {
+    where.installationId = installationId;
+  }
 
   const rows = await db.recommendation.findMany({
     where,
+    include: {
+      installation: {
+        include: {
+          product: true
+        }
+      }
+    },
     orderBy: { createdAt: "desc" },
     take: input.limit ?? 100
   });
@@ -115,8 +164,8 @@ export async function listRecommendations(input: {
   return rows.map((row: any) => ({
     id: row.id,
     tenantId: row.tenantId,
-    productId: row.productId,
-    installationId: row.installationId,
+    productId: row.installation?.product?.externalKey ?? row.installation?.product?.key ?? row.productId,
+    installationId: row.installation?.externalKey ?? row.installationId,
     capabilityPack: row.capabilityPack,
     skillId: row.skillId,
     type: row.type,

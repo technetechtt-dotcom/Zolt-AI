@@ -25,7 +25,16 @@ export class AnalysisOrchestrator {
         continue;
       }
       const now=new Date().toISOString();
-      output.push({...result.recommendation,id:randomUUID(),status:"PROPOSED",inputSnapshotId:randomUUID(),createdAt:now,updatedAt:now});
+      const stableId = deduplicationKey({
+        tenantId: result.recommendation.tenantId,
+        productId: result.recommendation.productId,
+        installationId: result.recommendation.installationId,
+        capabilityPack: result.recommendation.capabilityPack,
+        skillId: result.recommendation.skillId,
+        type: result.recommendation.type,
+        ruleVersion: result.recommendation.ruleVersion
+      });
+      output.push({...result.recommendation,id:stableId,status:"PROPOSED",inputSnapshotId:randomUUID(),createdAt:now,updatedAt:now});
     }
    } catch (error) {
     console.error("SKILL_EXECUTION_FAILED", {

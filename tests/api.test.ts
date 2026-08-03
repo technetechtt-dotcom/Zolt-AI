@@ -7,9 +7,15 @@ vi.mock("@zolt/database", () => ({
   listRecommendations: vi.fn(async () => []),
   listTelemetryForInstallation: vi.fn(async () => []),
   saveRecommendations: vi.fn(async () => undefined),
-  saveTelemetryEnvelope: vi.fn(async () => undefined),
   updateRecommendationStatus: vi.fn(async () => undefined),
   writeAuditEvent: vi.fn(async () => undefined)
+}));
+
+vi.mock("@zolt/queue", () => ({
+  enqueueTelemetry: vi.fn(async () => undefined),
+  telemetryQueue: vi.fn(() => ({
+    waitUntilReady: vi.fn(async () => undefined)
+  }))
 }));
 
 let buildApiApp: (deps: ApiDependencies, options?: { logger?: boolean }) => any;
@@ -25,12 +31,13 @@ afterAll(() => {
 
 function createDependencies(): ApiDependencies {
   return {
-    saveTelemetryEnvelope: vi.fn(async () => undefined),
+    enqueueTelemetry: vi.fn(async () => undefined),
     listTelemetryForInstallation: vi.fn(async () => []),
     saveRecommendations: vi.fn(async () => undefined),
     listRecommendations: vi.fn(async () => []),
     updateRecommendationStatus: vi.fn(async () => undefined),
     writeAuditEvent: vi.fn(async () => undefined),
+    readinessCheck: vi.fn(async () => true),
     createOrchestrator: () => ({
       analyse: vi.fn(async () => [] as ZoltRecommendation[])
     })
@@ -58,7 +65,7 @@ describe("API routes", () => {
     });
 
     expect(response.statusCode).toBe(202);
-    expect(deps.saveTelemetryEnvelope).toHaveBeenCalledTimes(1);
+    expect(deps.enqueueTelemetry).toHaveBeenCalledTimes(1);
     expect(deps.writeAuditEvent).toHaveBeenCalledTimes(1);
     await app.close();
   });

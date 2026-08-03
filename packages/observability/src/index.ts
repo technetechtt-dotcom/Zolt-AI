@@ -11,6 +11,16 @@ export function correlationIdFromRequest(req: FastifyRequest): string {
 
 export function logError(scope: string, error: unknown): void {
   const normalized = error instanceof Error ? error.message : String(error);
-  // Simple baseline observability until tracing backend is wired.
-  console.error(`[${scope}] ${normalized}`);
+  console.error(JSON.stringify({ level: "error", scope, message: normalized, ts: new Date().toISOString() }));
+}
+
+export function logInfo(scope: string, details?: Record<string, unknown>): void {
+  console.log(
+    JSON.stringify({
+      level: "info",
+      scope,
+      ts: new Date().toISOString(),
+      ...(details ?? {})
+    })
+  );
 }

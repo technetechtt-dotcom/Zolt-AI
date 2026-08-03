@@ -11,7 +11,7 @@ import { RecommendationStatus, TelemetryEnvelopeSchema } from "@zolt/contracts";
 import { correlationIdFromRequest } from "@zolt/observability";
 
 export interface ApiDependencies {
-  saveTelemetryEnvelope: (envelope: ZoltTelemetryEnvelope) => Promise<void>;
+  enqueueTelemetry: (envelope: ZoltTelemetryEnvelope) => Promise<void>;
   listTelemetryForInstallation: (input: {
     tenantId: string;
     productId: string;
@@ -38,6 +38,7 @@ export interface ApiDependencies {
     metadata?: Record<string, unknown>;
     correlationId?: string;
   }) => Promise<void>;
+  readinessCheck: () => Promise<boolean>;
   createOrchestrator: () => {
     analyse: (context: {
       tenantId: string;
@@ -63,6 +64,13 @@ export function buildApiApp(dependencies: ApiDependencies, options: ApiAppOption
     service: "zolt-api",
     advisoryOnly: process.env.ZOLT_ADVISORY_ONLY !== "false"
   }));
+  app.get("/health/ready", async (_req, reply) => {
+    const ready = await dependencies.readinessCheck();
+    if (!ready) {
+      return reply.code(503).send({ status: "degraded", service: "zolt-api" });
+    }
+    return { status: "ok", service: "zolt-api" };
+  });
 
   app.post("/v1/telemetry", { preHandler: requireApiKey }, async (req, reply) => {
     const parsed = TelemetryEnvelopeSchema.safeParse(req.body);
@@ -70,7 +78,7 @@ export function buildApiApp(dependencies: ApiDependencies, options: ApiAppOption
       return reply.code(400).send({ code: "INVALID_TELEMETRY", issues: parsed.error.issues });
     }
 
-    await dependencies.saveTelemetryEnvelope(parsed.data);
+    await dependencies.enqueueTelemetry(parsed.data);
     await dependencies.writeAuditEvent({
       tenantId: parsed.data.tenantId,
       eventType: "TELEMETRY_INGESTED",
@@ -101,11 +109,19 @@ export function buildApiApp(dependencies: ApiDependencies, options: ApiAppOption
       return reply.code(409).send({ code: "SAFETY_POLICY_VIOLATION" });
     }
 
-    const telemetry = await dependencies.listTelemetryForInstallation({
-      tenantId,
-      productId,
-      installationId
-    });
+    const telemetry = await dependencies
+      .listTelemetryForInstallation({
+        tenantId,
+        productId,
+        installationId
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message === "INSTALLATION_IDENTITY_NOT_FOUND") {
+          return [] as ZoltTelemetryEnvelope[];
+        }
+        throw error;
+      });
 
     const recommendations = await dependencies.createOrchestrator().analyse({
       tenantId,
@@ -116,7 +132,15 @@ export function buildApiApp(dependencies: ApiDependencies, options: ApiAppOption
       configuration: (body.configuration as Record<string, unknown>) ?? {}
     });
 
-    await dependencies.saveRecommendations(recommendations);
+    try {
+      await dependencies.saveRecommendations(recommendations);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === "INSTALLATION_IDENTITY_NOT_FOUND") {
+        return reply.code(404).send({ code: message });
+      }
+      throw error;
+    }
     return { advisoryOnly: true, recommendations };
   });
 
@@ -136,12 +160,23 @@ export function buildApiApp(dependencies: ApiDependencies, options: ApiAppOption
         ? (statusCandidate as RecommendationStatusType)
         : undefined;
 
-    return dependencies.listRecommendations({
-      tenantId,
-      productId: query.productId ? String(query.productId) : undefined,
-      installationId: query.installationId ? String(query.installationId) : undefined,
-      status
-    });
+    try {
+      return await dependencies.listRecommendations({
+        tenantId,
+        productId: query.productId ? String(query.productId) : undefined,
+        installationId: query.installationId ? String(query.installationId) : undefined,
+        status
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === "INSTALLATION_IDENTITY_NOT_FOUND") {
+        return reply.code(404).send({ code: message });
+      }
+      if (message === "INVALID_RECOMMENDATION_FILTER") {
+        return reply.code(400).send({ code: message });
+      }
+      throw error;
+    }
   });
 
   app.patch(
@@ -194,20 +229,30 @@ export async function startApiServer(): Promise<void> {
   const [
     { telemetryHealthSkill, curtailmentRiskSkill },
     { AnalysisOrchestrator },
-    database
+    database,
+    queue
   ] = await Promise.all([
     import("@zolt/capability-energy"),
     import("@zolt/core"),
-    import("@zolt/database")
+    import("@zolt/database"),
+    import("@zolt/queue")
   ]);
 
   const dependencies: ApiDependencies = {
-    saveTelemetryEnvelope: database.saveTelemetryEnvelope,
+    enqueueTelemetry: queue.enqueueTelemetry,
     listTelemetryForInstallation: database.listTelemetryForInstallation,
     saveRecommendations: database.saveRecommendations,
     listRecommendations: database.listRecommendations,
     updateRecommendationStatus: database.updateRecommendationStatus,
     writeAuditEvent: database.writeAuditEvent,
+    readinessCheck: async () => {
+      try {
+        await Promise.all([database.prisma.$queryRaw`SELECT 1`, queue.telemetryQueue().waitUntilReady()]);
+        return true;
+      } catch {
+        return false;
+      }
+    },
     createOrchestrator: () => new AnalysisOrchestrator([telemetryHealthSkill, curtailmentRiskSkill])
   };
 
