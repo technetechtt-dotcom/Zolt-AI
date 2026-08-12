@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "bullmq": "^5.56.9",
-    "ioredis": "^5.8.1",
+    "ioredis": "^6.0.0",
     "@zolt/contracts": "workspace:*",
     "@zolt/core": "workspace:*",
     "@zolt/capability-energy": "workspace:*",
