@@ -51,6 +51,8 @@ export interface WebhookDeliveryPayload {
   recommendationId: string;
   webhookUrl: string;
   webhookSecret?: string;
+  endpointId?: string;
+  idempotencyId?: string;
   payload: Record<string, unknown>;
 }
 

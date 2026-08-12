@@ -11,6 +11,7 @@
   "dependencies": {
     "@prisma/client": "^6.1.0",
     "@zolt/contracts": "workspace:*",
-    "@zolt/core": "workspace:*"
+    "@zolt/core": "workspace:*",
+    "@zolt/auth": "workspace:*"
   }
 }

@@ -21,6 +21,7 @@ jobs:
       REDIS_URL: redis://localhost:6379
       ZOLT_ADVISORY_ONLY: "true"
       ZOLT_ALLOW_INSECURE_AUTH: "true"
+      PRISMA_GENERATE_SKIP_AUTOINSTALL: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -32,6 +33,28 @@ jobs:
       - run: pnpm db:generate
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm lint
+      - run: pnpm scan:secrets
+      - run: pnpm sbom
+      - run: pnpm audit --prod
+        continue-on-error: true
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+        continue-on-error: true
 
   integration:
     runs-on: ubuntu-latest
@@ -55,14 +78,18 @@ jobs:
       ZOLT_ADVISORY_ONLY: "true"
       ZOLT_API_KEY: ci-api-key
       ZOLT_INGEST_HMAC_SECRET: ci-hmac-secret
+      ZOLT_MASTER_KEY: ci-master-key-not-for-production
       ZOLT_AUTO_PROVISION_IDENTITIES: "false"
+      ZOLT_BOOTSTRAP_TENANT_ID: tenant-smoke
+      ZOLT_BOOTSTRAP_PRODUCT_ID: product-smoke
+      ZOLT_BOOTSTRAP_INSTALLATION_ID: installation-smoke
       ZOLT_SEED_TENANT_ID: tenant-smoke
       ZOLT_SEED_PRODUCT_KEY: product-smoke
       ZOLT_SEED_INSTALLATION_KEY: installation-smoke
       ZOLT_SMOKE_TENANT_ID: tenant-smoke
       ZOLT_SMOKE_PRODUCT_ID: product-smoke
       ZOLT_SMOKE_INSTALLATION_ID: installation-smoke
-      ZOLT_ALLOWED_INSTALLATIONS: tenant-smoke:product-smoke:installation-smoke
+      PRISMA_GENERATE_SKIP_AUTOINSTALL: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -71,6 +98,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
+      - run: pnpm typecheck
       - run: pnpm db:deploy
       - run: pnpm db:seed
       - run: pnpm dev:api > /tmp/zolt-api.log 2>&1 &

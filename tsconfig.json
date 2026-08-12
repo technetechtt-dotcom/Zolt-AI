@@ -2,8 +2,9 @@
   "files": [],
   "references": [
     {"path":"packages/contracts"},{"path":"packages/connector-sdk"},{"path":"packages/capability-sdk"},
-    {"path":"packages/core"},{"path":"packages/database"},{"path":"packages/auth"},{"path":"packages/queue"},{"path":"packages/observability"},
+    {"path":"packages/safety"},{"path":"packages/core"},{"path":"packages/database"},{"path":"packages/auth"},{"path":"packages/queue"},{"path":"packages/observability"},
+    {"path":"packages/analytics"},{"path":"packages/mlops"},{"path":"packages/copilot"},{"path":"packages/twin"},
     {"path":"connectors/gridflex"},{"path":"capability-packs/energy"},
-    {"path":"apps/api"},{"path":"apps/connector-gateway"},{"path":"apps/worker"}
+    {"path":"apps/api"},{"path":"apps/connector-gateway"},{"path":"apps/worker"},{"path":"apps/console"}
   ]
 }

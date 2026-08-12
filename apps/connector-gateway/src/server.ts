@@ -1,8 +1,19 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import { fileURLToPath } from "node:url";
-import { requireApiKey, requireSignedIngest } from "@zolt/auth";
+import {
+  applySecurityHeaders,
+  assertIdentityBinding,
+  assertTlsIfProduction,
+  bodyLimitBytes,
+  requireApiKey,
+  requirePermission,
+  requireSignedIngest,
+  setCredentialResolver
+} from "@zolt/auth";
 import type { ZoltTelemetryEnvelope } from "@zolt/contracts";
+import { MAX_TELEMETRY_BATCH } from "@zolt/contracts";
+import { validateTelemetryEnvelope } from "@zolt/core";
 
 interface ConnectorContext {
   tenantId: string;
@@ -34,12 +45,14 @@ export interface GatewayAppOptions {
   logger?: boolean;
 }
 
-export function buildGatewayApp(
-  dependencies: GatewayDependencies,
-  options: GatewayAppOptions = {}
-) {
+export function buildGatewayApp(dependencies: GatewayDependencies, options: GatewayAppOptions = {}) {
   const loggerEnabled = options.logger ?? !process.env.VITEST;
-  const app = Fastify({ logger: loggerEnabled });
+  const app = Fastify({
+    logger: loggerEnabled,
+    bodyLimit: bodyLimitBytes(),
+    trustProxy: process.env.ZOLT_TRUST_PROXY === "true"
+  });
+  applySecurityHeaders(app);
 
   app.get("/health/live", async () => ({ status: "ok", service: "zolt-connector-gateway" }));
   app.get("/health/ready", async (_req, reply) => {
@@ -52,21 +65,24 @@ export function buildGatewayApp(
 
   app.post(
     "/v1/ingest/gridflex",
-    { preHandler: [requireApiKey, requireSignedIngest] },
+    { preHandler: [requireApiKey, requirePermission("telemetry:write"), requireSignedIngest] },
     async (req, reply) => {
       const h = req.headers;
-      const tenantId = String(h["x-zolt-tenant-id"] ?? "");
-      const productId = String(h["x-zolt-product-id"] ?? "");
-      const installationId = String(h["x-zolt-installation-id"] ?? "");
+      const tenantId = String(h["x-zolt-tenant-id"] ?? req.zoltAuth?.tenantId ?? "");
+      const productId = String(h["x-zolt-product-id"] ?? req.zoltAuth?.productId ?? "");
+      const installationId = String(h["x-zolt-installation-id"] ?? req.zoltAuth?.installationId ?? "");
       if (!tenantId || !productId || !installationId) {
         return reply.code(401).send({ code: "MISSING_INTEGRATION_IDENTITY" });
       }
+      try {
+        if (req.zoltAuth) {
+          assertIdentityBinding(req.zoltAuth, { tenantId, productId, installationId });
+        }
+      } catch {
+        return reply.code(403).send({ code: "TENANT_MISMATCH" });
+      }
 
-      const authorized = await dependencies.verifyTenantAccess({
-        tenantId,
-        productId,
-        installationId
-      });
+      const authorized = await dependencies.verifyTenantAccess({ tenantId, productId, installationId });
       if (!authorized) {
         return reply.code(403).send({ code: "TENANT_ACCESS_DENIED" });
       }
@@ -82,9 +98,16 @@ export function buildGatewayApp(
         installationId,
         receivedAt: new Date().toISOString()
       });
+      if (messages.length > MAX_TELEMETRY_BATCH) {
+        return reply.code(413).send({ code: "TELEMETRY_BATCH_TOO_LARGE" });
+      }
 
       for (const message of messages) {
-        await dependencies.enqueueTelemetry(message);
+        const checked = validateTelemetryEnvelope(message);
+        if (checked.errors.length > 0 || !checked.envelope) {
+          return reply.code(400).send({ code: "INVALID_TELEMETRY", errors: checked.errors });
+        }
+        await dependencies.enqueueTelemetry(checked.envelope);
       }
 
       return reply.code(202).send({ accepted: messages.length });
@@ -95,27 +118,28 @@ export function buildGatewayApp(
 }
 
 export async function startGatewayServer(): Promise<void> {
-  const [{ GridFlexConnector }, queue] = await Promise.all([
+  assertTlsIfProduction();
+  const [{ GridFlexConnector }, queue, database] = await Promise.all([
     import("@zolt/connector-gridflex"),
-    import("@zolt/queue")
+    import("@zolt/queue"),
+    import("@zolt/database")
   ]);
-
-  const allowed = new Set(
-    String(process.env.ZOLT_ALLOWED_INSTALLATIONS ?? "")
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean)
-  );
+  setCredentialResolver(database.resolveApiCredential);
 
   const dependencies: GatewayDependencies = {
     connector: new GridFlexConnector(),
     enqueueTelemetry: queue.enqueueTelemetry,
     verifyTenantAccess: async (identity) => {
-      if (allowed.size === 0) {
-        return process.env.NODE_ENV !== "production";
+      try {
+        await database.resolveInstallationIdentity({
+          tenantKey: identity.tenantId,
+          productKey: identity.productId,
+          installationKey: identity.installationId
+        });
+        return true;
+      } catch {
+        return false;
       }
-      const key = `${identity.tenantId}:${identity.productId}:${identity.installationId}`;
-      return allowed.has(key);
     },
     readinessCheck: async () => {
       try {
@@ -132,10 +156,8 @@ export async function startGatewayServer(): Promise<void> {
 }
 
 const isMain = process.argv[1] === fileURLToPath(import.meta.url);
-
 if (isMain) {
   startGatewayServer().catch((error) => {
-    // eslint-disable-next-line no-console
     console.error(error);
     process.exit(1);
   });

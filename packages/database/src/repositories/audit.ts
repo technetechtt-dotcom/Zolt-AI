@@ -17,12 +17,23 @@ export async function writeAuditEvent(input: AuditWriteInput): Promise<void> {
     data: {
       tenantId: input.tenantId,
       eventType: input.eventType,
-      actorType: input.actorType,
+      actorType: ["USER", "API", "SYSTEM", "DEVICE", "SERVICE_ACCOUNT"].includes(input.actorType)
+        ? input.actorType
+        : "SYSTEM",
       actorId: input.actorId,
       subjectType: input.subjectType,
       subjectId: input.subjectId,
       metadata: input.metadata,
       correlationId: input.correlationId
     }
+  });
+}
+
+export async function listAuditEvents(tenantId: string, limit = 100): Promise<unknown[]> {
+  const db = prisma as unknown as any;
+  return db.auditEvent.findMany({
+    where: { tenantId },
+    orderBy: { createdAt: "desc" },
+    take: limit
   });
 }

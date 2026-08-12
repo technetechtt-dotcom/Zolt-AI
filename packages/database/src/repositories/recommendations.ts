@@ -46,7 +46,13 @@ export async function saveRecommendations(recommendations: ZoltRecommendation[])
         uncertainties: recommendation.uncertainties,
         dataQualityWarnings: recommendation.dataQualityWarnings,
         ruleVersion: recommendation.ruleVersion,
+        modelVersion: recommendation.modelVersion,
         inputSnapshotId: recommendation.inputSnapshotId,
+        expectedEnergyKwh: recommendation.expectedEnergyKwh,
+        expectedRevenue: recommendation.expectedRevenue,
+        expectedCarbonKg: recommendation.expectedCarbonKg,
+        actionDeadline: recommendation.actionDeadline ? new Date(recommendation.actionDeadline) : undefined,
+        safetyClass: recommendation.safetyClass ?? "advisory",
         validFrom: new Date(recommendation.validFrom),
         expiresAt: new Date(recommendation.expiresAt)
       },
@@ -72,7 +78,13 @@ export async function saveRecommendations(recommendations: ZoltRecommendation[])
         uncertainties: recommendation.uncertainties,
         dataQualityWarnings: recommendation.dataQualityWarnings,
         ruleVersion: recommendation.ruleVersion,
+        modelVersion: recommendation.modelVersion,
         inputSnapshotId: recommendation.inputSnapshotId,
+        expectedEnergyKwh: recommendation.expectedEnergyKwh,
+        expectedRevenue: recommendation.expectedRevenue,
+        expectedCarbonKg: recommendation.expectedCarbonKg,
+        actionDeadline: recommendation.actionDeadline ? new Date(recommendation.actionDeadline) : undefined,
+        safetyClass: recommendation.safetyClass ?? "advisory",
         validFrom: new Date(recommendation.validFrom),
         expiresAt: new Date(recommendation.expiresAt),
         createdAt: new Date(recommendation.createdAt),
@@ -86,6 +98,8 @@ export async function updateRecommendationStatus(input: {
   tenantId: string;
   recommendationId: string;
   status: RecommendationStatus;
+  actorId?: string;
+  comment?: string;
 }): Promise<void> {
   const db = prisma as unknown as any;
   const existing = await db.recommendation.findFirst({
@@ -104,7 +118,30 @@ export async function updateRecommendationStatus(input: {
 
   await db.recommendation.update({
     where: { id: existing.id },
-    data: { status: input.status }
+    data: {
+      status: input.status,
+      decisionActorId: input.actorId,
+      decisionComment: input.comment
+    }
+  });
+}
+
+export async function recordRecommendationFeedback(input: {
+  tenantId: string;
+  recommendationId: string;
+  useful?: boolean;
+  correct?: boolean;
+}): Promise<void> {
+  const db = prisma as unknown as any;
+  const existing = await db.recommendation.findFirst({
+    where: { id: input.recommendationId, tenantId: input.tenantId }
+  });
+  if (!existing) {
+    throw new Error("RECOMMENDATION_NOT_FOUND");
+  }
+  await db.recommendation.update({
+    where: { id: existing.id },
+    data: { useful: input.useful, correct: input.correct }
   });
 }
 

@@ -54,6 +54,9 @@ importers:
       '@zolt/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@zolt/copilot':
+        specifier: workspace:*
+        version: link:../../packages/copilot
       '@zolt/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -81,12 +84,21 @@ importers:
       '@zolt/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@zolt/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@zolt/database':
         specifier: workspace:*
         version: link:../../packages/database
       '@zolt/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      fastify:
+        specifier: ^5.2.0
+        version: 5.11.0
+
+  apps/console:
+    dependencies:
       fastify:
         specifier: ^5.2.0
         version: 5.11.0
@@ -126,6 +138,9 @@ importers:
       '@zolt/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@zolt/core':
+        specifier: workspace:*
+        version: link:../../packages/core
 
   connectors/gridflex:
     dependencies:
@@ -136,8 +151,13 @@ importers:
         specifier: workspace:*
         version: link:../../packages/contracts
 
+  packages/analytics: {}
+
   packages/auth:
     dependencies:
+      '@zolt/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       fastify:
         specifier: ^5.2.0
         version: 5.11.0
@@ -163,6 +183,12 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
 
+  packages/copilot:
+    dependencies:
+      '@zolt/safety':
+        specifier: workspace:*
+        version: link:../safety
+
   packages/core:
     dependencies:
       '@zolt/capability-sdk':
@@ -171,18 +197,26 @@ importers:
       '@zolt/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@zolt/safety':
+        specifier: workspace:*
+        version: link:../safety
 
   packages/database:
     dependencies:
       '@prisma/client':
         specifier: ^6.1.0
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
+      '@zolt/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@zolt/contracts':
         specifier: workspace:*
         version: link:../contracts
       '@zolt/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/mlops: {}
 
   packages/observability:
     dependencies:
@@ -201,6 +235,10 @@ importers:
       ioredis:
         specifier: ^5.8.1
         version: 5.11.1
+
+  packages/safety: {}
+
+  packages/twin: {}
 
 packages:
 

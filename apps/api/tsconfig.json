@@ -18,6 +18,9 @@
       "path": "../../capability-packs/energy"
     },
     {
+      "path": "../../packages/copilot"
+    },
+    {
       "path": "../../packages/auth"
     },
     {
