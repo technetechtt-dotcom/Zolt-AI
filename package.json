@@ -46,7 +46,7 @@
     "@zolt/auth": "workspace:*",
     "dotenv": "^17.4.2",
     "fastify": "^5.2.0",
-    "zod": "^3.24.1"
+    "zod": "^4.4.3"
   },
   "pnpm": {
     "overrides": {
