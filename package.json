@@ -42,7 +42,7 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.3",
+    "@prisma/client": "^7.9.1",
     "@zolt/auth": "workspace:*",
     "dotenv": "^17.4.2",
     "fastify": "^5.2.0",
