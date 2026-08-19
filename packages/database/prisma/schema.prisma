@@ -63,31 +63,52 @@ enum IdentityKind {
 }
 
 enum CredentialStatus {
+  PENDING_APPROVAL
   ACTIVE
   REVOKED
   EXPIRED
   ROTATED
 }
 
+enum CredentialKind {
+  API_INTEGRATION
+  SERVICE_ACCOUNT
+  DEVICE
+}
+
+enum AccountTokenPurpose {
+  INVITATION
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  ACCOUNT_UNLOCK
+}
+
 model Tenant {
   id                    String                @id @default(cuid())
   name                  String
   plan                  String                @default("pilot")
+  region                String                @default("af-south-1")
+  billingEmail          String?
+  slaAvailabilityTarget Float                 @default(0.995)
   telemetryRetentionDays Int                  @default(90)
   recommendationRetentionDays Int             @default(365)
+  auditRetentionDays      Int                   @default(2555)
   ingestQuotaPerMinute  Int                   @default(600)
+  webhookQuota          Int                   @default(20)
   createdAt             DateTime              @default(now())
   archivedAt            DateTime?
   products              Product[]
   installations         ProductInstallation[]
   recommendations       Recommendation[]
-  users                 User[]
   memberships           TenantMembership[]
   credentials           ApiCredential[]
   webhooks              WebhookEndpoint[]
   auditEvents           AuditEvent[]
   usageMeters           UsageMeter[]
-  sessions              Session[]
+  roles                 Role[]
+  invoices              Invoice[]
+  slaIncidents          SlaIncident[]
+  models                ModelRegistry[]
 }
 
 model Product {
@@ -124,8 +145,10 @@ model ProductInstallation {
   recommendations Recommendation[]
   credentials     ApiCredential[]
   accessScopes    InstallationAccess[]
+  calibrations    SensorCalibration[]
 
   @@unique([id, tenantId])
+  @@unique([id, tenantId, productId])
   @@unique([tenantId, productId, externalKey])
   @@index([tenantId, productId])
 }
@@ -157,10 +180,32 @@ model Asset {
   name              String
   type              String
   operationalLimits Json?
+  validationProfile Json?
   archivedAt        DateTime?
   installation      ProductInstallation @relation(fields: [installationId, tenantId], references: [id, tenantId])
+  calibrations      SensorCalibration[]
 
+  @@unique([id, tenantId])
+  @@unique([id, tenantId, installationId])
   @@unique([tenantId, installationId, externalRef])
+}
+
+model SensorCalibration {
+  id              String              @id @default(cuid())
+  tenantId        String
+  installationId  String
+  assetId         String
+  measurementKey  String
+  calibrationData Json
+  calibratedAt    DateTime
+  nextDueAt       DateTime?
+  calibratedBy    String?
+  certificateRef  String?
+  createdAt       DateTime            @default(now())
+  installation    ProductInstallation @relation(fields: [installationId, tenantId], references: [id, tenantId])
+  asset           Asset               @relation(fields: [assetId, tenantId, installationId], references: [id, tenantId, installationId])
+
+  @@index([tenantId, installationId, assetId, measurementKey, calibratedAt])
 }
 
 model TelemetryMessage {
@@ -181,9 +226,14 @@ model TelemetryMessage {
   outOfOrder        Boolean             @default(false)
   simulated         Boolean             @default(false)
   schemaVersion     String              @default("1.0")
+  completenessScore Float?
+  qualityScore       Float?
+  clockQualityScore  Float?
+  sourceTrustLevel   String?
+  qualityIssues      Json?
   payload           Json
   archivedAt        DateTime?
-  installation      ProductInstallation @relation(fields: [installationId, tenantId], references: [id, tenantId])
+  installation      ProductInstallation @relation(fields: [installationId, tenantId, productId], references: [id, tenantId, productId])
 
   @@unique([tenantId, installationId, messageId])
   @@unique([tenantId, installationId, deduplicationHash])
@@ -230,7 +280,7 @@ model Recommendation {
   createdAt           DateTime                  @default(now())
   updatedAt           DateTime                  @updatedAt
   tenant              Tenant                    @relation(fields: [tenantId], references: [id])
-  installation        ProductInstallation       @relation(fields: [installationId, tenantId], references: [id, tenantId])
+  installation        ProductInstallation       @relation(fields: [installationId, tenantId, productId], references: [id, tenantId, productId])
 
   @@index([tenantId, status, createdAt])
   @@index([tenantId, productId, installationId, priority])
@@ -259,27 +309,35 @@ model User {
   name           String
   passwordHash   String?
   mfaSecret      String?
+  mfaEnabled     Boolean            @default(false)
+  emailVerifiedAt DateTime?
+  passwordChangedAt DateTime?
   kind           IdentityKind       @default(USER)
   lockedUntil    DateTime?
   failedLogins   Int                @default(0)
   invitedAt      DateTime?
+  acceptedAt     DateTime?
+  lastLoginAt    DateTime?
+  lastActiveAt   DateTime?
+  deactivatedAt  DateTime?
   createdAt      DateTime           @default(now())
   archivedAt     DateTime?
-  tenantId       String?
-  tenant         Tenant?            @relation(fields: [tenantId], references: [id])
   memberships    TenantMembership[]
-  roles          UserRole[]
-  sessions       Session[]
-  credentials    ApiCredential[]
-  installationAccess InstallationAccess[]
+  recoveryCodes  MfaRecoveryCode[]
+  accountTokens  AccountToken[]
 }
 
 model Role {
   id          String           @id @default(cuid())
-  key         String           @unique
+  tenantId    String
+  key         String
   name        String
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
   permissions RolePermission[]
-  users       UserRole[]
+  memberships MembershipRole[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, key])
 }
 
 model Permission {
@@ -289,23 +347,29 @@ model Permission {
 }
 
 model TenantMembership {
-  id       String @id @default(cuid())
-  tenantId String
-  userId   String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
-  user     User   @relation(fields: [userId], references: [id])
+  id                 String               @id @default(cuid())
+  tenantId           String
+  userId             String
+  tenant             Tenant               @relation(fields: [tenantId], references: [id])
+  user               User                 @relation(fields: [userId], references: [id])
+  roles              MembershipRole[]
+  installationAccess InstallationAccess[]
+  sessions           Session[]
+  credentials        ApiCredential[]
 
   @@unique([tenantId, userId])
 }
 
-model UserRole {
-  id     String @id @default(cuid())
-  userId String
-  roleId String
-  user   User   @relation(fields: [userId], references: [id])
-  role   Role   @relation(fields: [roleId], references: [id])
+model MembershipRole {
+  id         String           @id @default(cuid())
+  tenantId   String
+  userId     String
+  roleId     String
+  membership TenantMembership @relation(fields: [tenantId, userId], references: [tenantId, userId])
+  role       Role             @relation(fields: [roleId, tenantId], references: [id, tenantId])
 
-  @@unique([userId, roleId])
+  @@unique([tenantId, userId, roleId])
+  @@map("UserRole")
 }
 
 model RolePermission {
@@ -320,24 +384,54 @@ model RolePermission {
 
 model InstallationAccess {
   id             String              @id @default(cuid())
+  tenantId       String
   userId         String
   installationId String
-  user           User                @relation(fields: [userId], references: [id])
-  installation   ProductInstallation @relation(fields: [installationId], references: [id])
+  membership     TenantMembership    @relation(fields: [tenantId, userId], references: [tenantId, userId])
+  installation   ProductInstallation @relation(fields: [installationId, tenantId], references: [id, tenantId])
 
-  @@unique([userId, installationId])
+  @@unique([tenantId, userId, installationId])
 }
 
 model Session {
+  id          String           @id @default(cuid())
+  userId      String
+  tenantId    String
+  tokenHash   String           @unique
+  deviceName  String?
+  userAgent   String?
+  ipAddress   String?
+  lastSeenAt  DateTime         @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  membership  TenantMembership @relation(fields: [tenantId, userId], references: [tenantId, userId])
+
+  @@index([tenantId, userId, revokedAt])
+}
+
+model MfaRecoveryCode {
   id        String   @id @default(cuid())
   userId    String
-  tenantId  String
-  tokenHash String   @unique
-  expiresAt DateTime
-  revokedAt DateTime?
+  codeHash  String
+  usedAt    DateTime?
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, usedAt])
+}
+
+model AccountToken {
+  id        String              @id @default(cuid())
+  userId    String
+  purpose   AccountTokenPurpose
+  tokenHash String              @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime            @default(now())
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, expiresAt])
 }
 
 model ApiCredential {
@@ -351,16 +445,19 @@ model ApiCredential {
   keyHash            String
   signingSecretEnc   String
   permissions        Json
+  kind               CredentialKind      @default(API_INTEGRATION)
   status             CredentialStatus    @default(ACTIVE)
+  approvedAt         DateTime?
+  approvedById       String?
   expiresAt          DateTime?
   revokedAt          DateTime?
   rotatedFromId      String?
   lastUsedAt         DateTime?
   createdAt          DateTime            @default(now())
   tenant             Tenant              @relation(fields: [tenantId], references: [id])
-  product            Product?            @relation(fields: [productId], references: [id])
-  installation       ProductInstallation? @relation(fields: [installationId], references: [id])
-  user               User?               @relation(fields: [userId], references: [id])
+  product            Product?            @relation(fields: [productId, tenantId], references: [id, tenantId])
+  installation       ProductInstallation? @relation(fields: [installationId, tenantId, productId], references: [id, tenantId, productId])
+  membership         TenantMembership?    @relation(fields: [tenantId, userId], references: [tenantId, userId])
 
   @@index([tenantId, keyPrefix])
   @@index([tenantId, status])
@@ -410,13 +507,52 @@ model UsageMeter {
 
 model ModelRegistry {
   id            String   @id @default(cuid())
+  tenantId      String?
   name          String
   version       String
   status        String   @default("candidate")
   metadata      Json?
   evaluation    Json?
+  artifactUri   String?
+  trainingDatasetVersion String?
+  featureSetVersion String?
+  trainingParameters Json?
+  trainedAt     DateTime?
+  owner         String?
+  approvalOwner String?
+  environment   String?
+  rollbackVersion String?
+  driftStatus   String             @default("unknown")
+  explainability Json?
+  intendedUse   String?
+  limitations   Json?
+  safetyThresholds Json?
   approvedAt    DateTime?
   createdAt     DateTime @default(now())
+  tenant        Tenant?  @relation(fields: [tenantId], references: [id])
 
-  @@unique([name, version])
+  @@unique([tenantId, name, version])
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  tenantId    String
+  period      String
+  amount      Float
+  currency    String   @default("ZAR")
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, period])
+}
+
+model SlaIncident {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  severity    String
+  startedAt   DateTime @default(now())
+  resolvedAt  DateTime?
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
 }

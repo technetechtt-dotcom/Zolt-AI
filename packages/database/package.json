@@ -13,5 +13,8 @@
     "@zolt/contracts": "workspace:*",
     "@zolt/core": "workspace:*",
     "@zolt/auth": "workspace:*"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.3"
   }
 }

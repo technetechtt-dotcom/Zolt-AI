@@ -3,7 +3,12 @@ import { createHmac } from "node:crypto";
 import { Redis } from "ioredis";
 import type { PermissionKey } from "@zolt/contracts";
 import { ROLE_PERMISSIONS } from "@zolt/contracts";
-import { allowInsecureAuth, isProduction, safeCompare, verifySecret } from "./crypto.js";
+import {
+  allowInsecureAuth,
+  isProduction,
+  safeCompare,
+  verifySecret,
+} from "./crypto.js";
 import type { AuthenticatedPrincipal } from "./principal.js";
 import { clientIp, enforceRateLimit } from "./rate-limit.js";
 
@@ -13,13 +18,19 @@ declare module "fastify" {
   }
 }
 
-export type CredentialResolver = (plaintext: string) => Promise<AuthenticatedPrincipal | null>;
-export type SessionResolver = (token: string) => Promise<AuthenticatedPrincipal | null>;
+export type CredentialResolver = (
+  plaintext: string,
+) => Promise<AuthenticatedPrincipal | null>;
+export type SessionResolver = (
+  token: string,
+) => Promise<AuthenticatedPrincipal | null>;
 
 let credentialResolver: CredentialResolver | null = null;
 let sessionResolver: SessionResolver | null = null;
 
-export function setCredentialResolver(resolver: CredentialResolver | null): void {
+export function setCredentialResolver(
+  resolver: CredentialResolver | null,
+): void {
   credentialResolver = resolver;
 }
 
@@ -38,25 +49,42 @@ function bootstrapPrincipal(): AuthenticatedPrincipal | null {
     installationId: process.env.ZOLT_BOOTSTRAP_INSTALLATION_ID,
     permissions: ROLE_PERMISSIONS["api-integration"],
     signingSecret: process.env.ZOLT_INGEST_HMAC_SECRET,
-    actorType: "API"
+    actorType: "API",
   };
 }
 
-export async function requireApiKey(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function requireApiKey(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
   if (isProduction() && process.env.ZOLT_ALLOW_INSECURE_AUTH === "true") {
-    await reply.code(503).send({ code: "INSECURE_AUTH_FORBIDDEN_IN_PRODUCTION" });
+    await reply
+      .code(503)
+      .send({ code: "INSECURE_AUTH_FORBIDDEN_IN_PRODUCTION" });
     return;
   }
 
   const tenantHint = String(req.headers["x-zolt-tenant-id"] ?? "");
   const limit = Number(process.env.ZOLT_RATE_LIMIT_PER_MINUTE ?? 120);
-  const tenantLimit = Number(process.env.ZOLT_TENANT_RATE_LIMIT_PER_MINUTE ?? 600);
-  const allowedIp = await enforceRateLimit(req, reply, `ip:${clientIp(req)}`, limit);
+  const tenantLimit = Number(
+    process.env.ZOLT_TENANT_RATE_LIMIT_PER_MINUTE ?? 600,
+  );
+  const allowedIp = await enforceRateLimit(
+    req,
+    reply,
+    `ip:${clientIp(req)}`,
+    limit,
+  );
   if (!allowedIp) {
     return;
   }
   if (tenantHint) {
-    const allowedTenant = await enforceRateLimit(req, reply, `tenant:${tenantHint}`, tenantLimit);
+    const allowedTenant = await enforceRateLimit(
+      req,
+      reply,
+      `tenant:${tenantHint}`,
+      tenantLimit,
+    );
     if (!allowedTenant) {
       return;
     }
@@ -75,12 +103,16 @@ export async function requireApiKey(req: FastifyRequest, reply: FastifyReply): P
     req.zoltAuth = bootstrapPrincipal() ?? {
       tenantId: tenantHint || "anonymous",
       permissions: ROLE_PERMISSIONS["api-integration"],
-      actorType: "API"
+      actorType: "API",
     };
     return;
   }
 
   const configured = process.env.ZOLT_API_KEY;
+  if (isProduction() && !credentialResolver) {
+    await reply.code(503).send({ code: "AUTH_NOT_CONFIGURED" });
+    return;
+  }
   if (!configured && !credentialResolver) {
     await reply.code(503).send({ code: "AUTH_NOT_CONFIGURED" });
     return;
@@ -101,14 +133,24 @@ export async function requireApiKey(req: FastifyRequest, reply: FastifyReply): P
   }
 
   if (configured && safeCompare(provided, configured)) {
-    req.zoltAuth =
-      bootstrapPrincipal() ?? {
-        tenantId: tenantHint || "",
-        permissions: ROLE_PERMISSIONS["api-integration"],
-        signingSecret: process.env.ZOLT_INGEST_HMAC_SECRET,
-        actorType: "API",
-        unscoped: !isProduction()
-      };
+    if (isProduction()) {
+      await reply
+        .code(401)
+        .send({ code: "ENV_API_KEY_DISABLED_IN_PRODUCTION" });
+      return;
+    }
+    const principal = bootstrapPrincipal();
+    if (isProduction() && !principal) {
+      await reply.code(503).send({ code: "BOOTSTRAP_TENANT_REQUIRED" });
+      return;
+    }
+    req.zoltAuth = principal ?? {
+      tenantId: tenantHint || "",
+      permissions: ROLE_PERMISSIONS["api-integration"],
+      signingSecret: process.env.ZOLT_INGEST_HMAC_SECRET,
+      actorType: "API",
+      unscoped: !isProduction(),
+    };
     return;
   }
 
@@ -134,14 +176,22 @@ function replayRedisClient(): Redis | null {
     replayRedis = null;
     return replayRedis;
   }
-  replayRedis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
+  replayRedis = new Redis(process.env.REDIS_URL, {
+    maxRetriesPerRequest: null,
+  });
   return replayRedis;
 }
 
 async function claimReplayKey(key: string): Promise<boolean> {
   const redis = replayRedisClient();
   if (redis) {
-    const result = await redis.set(`zolt:replay:${key}`, "1", "PX", 10 * 60 * 1000, "NX");
+    const result = await redis.set(
+      `zolt:replay:${key}`,
+      "1",
+      "PX",
+      10 * 60 * 1000,
+      "NX",
+    );
     return result === "OK";
   }
   const now = Date.now();
@@ -153,13 +203,20 @@ async function claimReplayKey(key: string): Promise<boolean> {
   return true;
 }
 
-export async function requireSignedIngest(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function requireSignedIngest(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
   if (isProduction() && process.env.ZOLT_ALLOW_INSECURE_AUTH === "true") {
-    await reply.code(503).send({ code: "INSECURE_AUTH_FORBIDDEN_IN_PRODUCTION" });
+    await reply
+      .code(503)
+      .send({ code: "INSECURE_AUTH_FORBIDDEN_IN_PRODUCTION" });
     return;
   }
 
-  const secret = req.zoltAuth?.signingSecret ?? process.env.ZOLT_INGEST_HMAC_SECRET;
+  const secret =
+    req.zoltAuth?.signingSecret ??
+    (isProduction() ? undefined : process.env.ZOLT_INGEST_HMAC_SECRET);
   if (!secret && allowInsecureAuth()) {
     return;
   }
@@ -191,7 +248,9 @@ export async function requireSignedIngest(req: FastifyRequest, reply: FastifyRep
   }
 
   const body = JSON.stringify(req.body ?? {});
-  const expected = createHmac("sha256", secret).update(`${timestampHeader}.${replayKey}.${body}`).digest("hex");
+  const expected = createHmac("sha256", secret)
+    .update(`${timestampHeader}.${replayKey}.${body}`)
+    .digest("hex");
   if (!safeCompare(signatureHeader, expected)) {
     await reply.code(401).send({ code: "INVALID_INGEST_SIGNATURE" });
     return;
@@ -216,7 +275,10 @@ export function requirePermission(permission: PermissionKey) {
       await reply.code(401).send({ code: "UNAUTHORIZED" });
       return;
     }
-    if (!principal.permissions.includes(permission) && !principal.permissions.includes("admin:manage")) {
+    if (
+      !principal.permissions.includes(permission) &&
+      !principal.permissions.includes("admin:manage")
+    ) {
       await reply.code(403).send({ code: "FORBIDDEN" });
       return;
     }

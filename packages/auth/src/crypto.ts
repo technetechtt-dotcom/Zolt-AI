@@ -1,4 +1,11 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+} from "node:crypto";
 
 const SCRYPT_KEYLEN = 64;
 
@@ -13,7 +20,10 @@ export function allowInsecureAuth(): boolean {
   return process.env.ZOLT_ALLOW_INSECURE_AUTH === "true";
 }
 
-export function hashSecret(value: string, salt = randomBytes(16).toString("hex")): string {
+export function hashSecret(
+  value: string,
+  salt = randomBytes(16).toString("hex"),
+): string {
   const derived = scryptSync(value, salt, SCRYPT_KEYLEN).toString("hex");
   return `${salt}:${derived}`;
 }
@@ -41,14 +51,26 @@ export function safeCompare(value: string, expected: string): boolean {
 }
 
 function masterKey(): Buffer {
-  const secret = process.env.ZOLT_MASTER_KEY ?? "dev-master-key-not-for-production";
+  const configured = process.env.ZOLT_MASTER_KEY;
+  if (
+    isProduction() &&
+    (!configured ||
+      configured === "dev-master-key-not-for-production" ||
+      configured.length < 32)
+  ) {
+    throw new Error("PRODUCTION_MASTER_KEY_REQUIRED");
+  }
+  const secret = configured ?? "dev-master-key-not-for-production";
   return createHash("sha256").update(secret).digest();
 }
 
 export function encryptSecret(plain: string): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", masterKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(plain, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
   return `${iv.toString("hex")}:${tag.toString("hex")}:${encrypted.toString("hex")}`;
 }
@@ -58,9 +80,16 @@ export function decryptSecret(payload: string): string {
   if (!ivHex || !tagHex || !dataHex) {
     throw new Error("INVALID_SECRET_PAYLOAD");
   }
-  const decipher = createDecipheriv("aes-256-gcm", masterKey(), Buffer.from(ivHex, "hex"));
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    masterKey(),
+    Buffer.from(ivHex, "hex"),
+  );
   decipher.setAuthTag(Buffer.from(tagHex, "hex"));
-  return Buffer.concat([decipher.update(Buffer.from(dataHex, "hex")), decipher.final()]).toString("utf8");
+  return Buffer.concat([
+    decipher.update(Buffer.from(dataHex, "hex")),
+    decipher.final(),
+  ]).toString("utf8");
 }
 
 export function generateApiKey(): { plaintext: string; prefix: string } {

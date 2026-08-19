@@ -1,5 +1,5 @@
 import type { ZoltTelemetryEnvelope } from "@zolt/contracts";
-import { deduplicationKey } from "@zolt/core";
+import { assessTelemetryQuality, deduplicationKey } from "@zolt/core";
 import { prisma } from "../client.js";
 import { ensureInstallationIdentity } from "./installations.js";
 
@@ -7,11 +7,13 @@ function db(): any {
   return prisma as unknown as any;
 }
 
-export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Promise<void> {
+export async function saveTelemetryEnvelope(
+  envelope: ZoltTelemetryEnvelope,
+): Promise<void> {
   const ids = await ensureInstallationIdentity({
     tenantKey: envelope.tenantId,
     productKey: envelope.productId,
-    installationKey: envelope.installationId
+    installationKey: envelope.installationId,
   });
 
   const existingDevice = await db().device.findUnique({
@@ -19,9 +21,9 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
       tenantId_installationId_externalRef: {
         tenantId: ids.tenantId,
         installationId: ids.installationId,
-        externalRef: envelope.deviceId
-      }
-    }
+        externalRef: envelope.deviceId,
+      },
+    },
   });
 
   await db().device.upsert({
@@ -29,8 +31,8 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
       tenantId_installationId_externalRef: {
         tenantId: ids.tenantId,
         installationId: ids.installationId,
-        externalRef: envelope.deviceId
-      }
+        externalRef: envelope.deviceId,
+      },
     },
     update: {
       lastSeen: new Date(envelope.sourceTimestamp),
@@ -39,7 +41,7 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
       vendor: envelope.vendor,
       model: envelope.model,
       firmwareVersion: envelope.firmwareVersion,
-      status: envelope.communicationHealth === "FAILED" ? "OFFLINE" : "ONLINE"
+      status: envelope.communicationHealth === "FAILED" ? "OFFLINE" : "ONLINE",
     },
     create: {
       tenantId: ids.tenantId,
@@ -51,8 +53,8 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
       lastSequence: envelope.sequenceNumber,
       vendor: envelope.vendor,
       model: envelope.model,
-      firmwareVersion: envelope.firmwareVersion
-    }
+      firmwareVersion: envelope.firmwareVersion,
+    },
   });
 
   if (envelope.assetId) {
@@ -61,8 +63,8 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
         tenantId_installationId_externalRef: {
           tenantId: ids.tenantId,
           installationId: ids.installationId,
-          externalRef: envelope.assetId
-        }
+          externalRef: envelope.assetId,
+        },
       },
       update: { name: envelope.assetId },
       create: {
@@ -70,8 +72,8 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
         installationId: ids.installationId,
         externalRef: envelope.assetId,
         name: envelope.assetId,
-        type: "asset"
-      }
+        type: "asset",
+      },
     });
   }
 
@@ -79,7 +81,7 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
     tenantId: envelope.tenantId,
     productId: envelope.productId,
     installationId: envelope.installationId,
-    messageId: envelope.messageId
+    messageId: envelope.messageId,
   });
 
   const received = new Date(envelope.receivedTimestamp);
@@ -90,14 +92,15 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
     existingDevice?.lastSequence !== undefined &&
     envelope.sequenceNumber !== undefined &&
     envelope.sequenceNumber < existingDevice.lastSequence;
+  const quality = assessTelemetryQuality({ telemetry: [envelope] });
 
   await db().telemetryMessage.upsert({
     where: {
       tenantId_installationId_messageId: {
         tenantId: ids.tenantId,
         installationId: ids.installationId,
-        messageId: envelope.messageId
-      }
+        messageId: envelope.messageId,
+      },
     },
     update: {
       sourceTimestamp: source,
@@ -110,7 +113,12 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
       stale,
       outOfOrder,
       simulated: envelope.simulated === true,
-      schemaVersion: envelope.schemaVersion
+      schemaVersion: envelope.schemaVersion,
+      completenessScore: quality.completenessScore,
+      qualityScore: quality.qualityScore,
+      clockQualityScore: quality.clockQualityScore,
+      sourceTrustLevel: quality.sourceTrustLevel,
+      qualityIssues: quality.issues,
     },
     create: {
       tenantId: ids.tenantId,
@@ -129,8 +137,13 @@ export async function saveTelemetryEnvelope(envelope: ZoltTelemetryEnvelope): Pr
       stale,
       outOfOrder,
       simulated: envelope.simulated === true,
-      schemaVersion: envelope.schemaVersion
-    }
+      schemaVersion: envelope.schemaVersion,
+      completenessScore: quality.completenessScore,
+      qualityScore: quality.qualityScore,
+      clockQualityScore: quality.clockQualityScore,
+      sourceTrustLevel: quality.sourceTrustLevel,
+      qualityIssues: quality.issues,
+    },
   });
 }
 
@@ -143,7 +156,7 @@ export async function listTelemetryForInstallation(input: {
   const ids = await ensureInstallationIdentity({
     tenantKey: input.tenantId,
     productKey: input.productId,
-    installationKey: input.installationId
+    installationKey: input.installationId,
   });
 
   const rows = await db().telemetryMessage.findMany({
@@ -151,10 +164,10 @@ export async function listTelemetryForInstallation(input: {
       tenantId: ids.tenantId,
       productId: ids.productId,
       installationId: ids.installationId,
-      archivedAt: null
+      archivedAt: null,
     },
     orderBy: { sourceTimestamp: "desc" },
-    take: input.limit ?? 500
+    take: input.limit ?? 500,
   });
 
   return rows.map((row: any) => row.payload as ZoltTelemetryEnvelope);

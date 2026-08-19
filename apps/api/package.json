@@ -17,6 +17,8 @@
     "@zolt/contracts": "workspace:*",
     "@zolt/core": "workspace:*",
     "@zolt/capability-energy": "workspace:*",
-    "@zolt/copilot": "workspace:*"
+    "@zolt/copilot": "workspace:*",
+    "@zolt/mlops": "workspace:*",
+    "@zolt/optimisation": "workspace:*"
   }
 }

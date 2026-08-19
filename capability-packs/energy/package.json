@@ -1,1 +1,18 @@
-{"name":"@zolt/capability-energy","version":"0.1.0","private":true,"type":"module","main":"dist/index.js","types":"dist/index.d.ts","scripts":{"build":"tsc -b"},"dependencies":{"@zolt/contracts":"workspace:*","@zolt/capability-sdk":"workspace:*","@zolt/core":"workspace:*"}}
+{
+  "name": "@zolt/capability-energy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@zolt/contracts": "workspace:*",
+    "@zolt/capability-sdk": "workspace:*",
+    "@zolt/core": "workspace:*",
+    "@zolt/analytics": "workspace:*",
+    "@zolt/optimisation": "workspace:*"
+  }
+}

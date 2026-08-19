@@ -23,5 +23,4 @@ Zolt Core is product-neutral. Vendor mappings remain in connectors. Domain intel
 
 ## Data integrity
 
-Composite foreign keys bind installations to `(productId, tenantId)` and bind devices, assets, telemetry and recommendations to `(installationId, tenantId)`. Status fields use PostgreSQL enums.
-
+Composite foreign keys bind installations to `(productId, tenantId)`; bind telemetry, recommendations and credentials to `(installationId, tenantId, productId)`; and bind membership roles, sessions and installation access to `(tenantId,userId)`. Status fields use PostgreSQL enums. See `TENANCY.md` and `TELEMETRY_SCHEMA.md`.

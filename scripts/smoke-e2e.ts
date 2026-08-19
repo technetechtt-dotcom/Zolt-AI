@@ -5,11 +5,14 @@ const gatewayUrl = process.env.ZOLT_GATEWAY_URL ?? "http://localhost:4001";
 const apiUrl = process.env.ZOLT_API_BASE_URL ?? "http://localhost:4000";
 const tenantId = process.env.ZOLT_SMOKE_TENANT_ID ?? "tenant-smoke";
 const productId = process.env.ZOLT_SMOKE_PRODUCT_ID ?? "product-smoke";
-const installationId = process.env.ZOLT_SMOKE_INSTALLATION_ID ?? "installation-smoke";
+const installationId =
+  process.env.ZOLT_SMOKE_INSTALLATION_ID ?? "installation-smoke";
 const apiKey = process.env.ZOLT_API_KEY ?? "";
 const hmacSecret = process.env.ZOLT_INGEST_HMAC_SECRET ?? "";
 
-function signedHeaders(payload: Record<string, unknown>): Record<string, string> {
+function signedHeaders(
+  payload: Record<string, unknown>,
+): Record<string, string> {
   const timestamp = Date.now().toString();
   const replayKey = randomUUID();
   const signature = createHmac("sha256", hmacSecret)
@@ -19,13 +22,15 @@ function signedHeaders(payload: Record<string, unknown>): Record<string, string>
   return {
     "x-zolt-signature-ts": timestamp,
     "x-zolt-replay-key": replayKey,
-    "x-zolt-signature": signature
+    "x-zolt-signature": signature,
   };
 }
 
 async function main(): Promise<void> {
   if (!apiKey || !hmacSecret) {
-    throw new Error("Set ZOLT_API_KEY and ZOLT_INGEST_HMAC_SECRET before running smoke test.");
+    throw new Error(
+      "Set ZOLT_API_KEY and ZOLT_INGEST_HMAC_SECRET before running smoke test.",
+    );
   }
 
   const ingestPayload = {
@@ -35,8 +40,8 @@ async function main(): Promise<void> {
     readings: {
       powerKw: 135.5,
       voltage: 398.2,
-      breakerClosed: true
-    }
+      breakerClosed: true,
+    },
   };
 
   const ingestResponse = await fetch(`${gatewayUrl}/v1/ingest/gridflex`, {
@@ -47,36 +52,83 @@ async function main(): Promise<void> {
       "x-zolt-tenant-id": tenantId,
       "x-zolt-product-id": productId,
       "x-zolt-installation-id": installationId,
-      ...signedHeaders(ingestPayload)
+      ...signedHeaders(ingestPayload),
     },
-    body: JSON.stringify(ingestPayload)
+    body: JSON.stringify(ingestPayload),
   });
 
   if (!ingestResponse.ok) {
-    throw new Error(`Gateway ingest failed: ${ingestResponse.status} ${await ingestResponse.text()}`);
+    throw new Error(
+      `Gateway ingest failed: ${ingestResponse.status} ${await ingestResponse.text()}`,
+    );
+  }
+
+  const installationResponse = await fetch(`${apiUrl}/v1/installations`, {
+    headers: { "x-zolt-api-key": apiKey },
+  });
+  if (!installationResponse.ok) {
+    throw new Error(
+      `Installation lookup failed: ${installationResponse.status} ${await installationResponse.text()}`,
+    );
+  }
+  const installations = (await installationResponse.json()) as Array<{
+    id: string;
+    externalKey: string;
+    productId: string;
+  }>;
+  const installation = installations.find(
+    (item) => item.externalKey === installationId,
+  );
+  if (!installation) throw new Error("Seeded installation was not found.");
+  const canonicalProductId = installation.productId;
+  const canonicalInstallationId = installation.id;
+
+  let telemetryAvailable = false;
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const telemetryResponse = await fetch(
+      `${apiUrl}/v1/telemetry?tenantId=${encodeURIComponent(tenantId)}&productId=${encodeURIComponent(canonicalProductId)}&installationId=${encodeURIComponent(canonicalInstallationId)}`,
+      { headers: { "x-zolt-api-key": apiKey } },
+    );
+    if (telemetryResponse.ok) {
+      const telemetry = (await telemetryResponse.json()) as Array<{
+        messageId: string;
+      }>;
+      if (
+        telemetry.some((item) => item.messageId === ingestPayload.messageId)
+      ) {
+        telemetryAvailable = true;
+        break;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+  if (!telemetryAvailable) {
+    throw new Error("Ingested telemetry was not processed within 30 seconds.");
   }
 
   const analysisResponse = await fetch(`${apiUrl}/v1/analysis`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-zolt-api-key": apiKey
+      "x-zolt-api-key": apiKey,
     },
     body: JSON.stringify({
       tenantId,
-      productId,
-      installationId,
+      productId: canonicalProductId,
+      installationId: canonicalInstallationId,
       configuration: {
         expectedSamplingSeconds: 5,
         exportLimitKw: 120,
         forecastPowerKw: 150,
-        forecastWindowHours: 1
-      }
-    })
+        forecastWindowHours: 1,
+      },
+    }),
   });
 
   if (!analysisResponse.ok) {
-    throw new Error(`Analysis failed: ${analysisResponse.status} ${await analysisResponse.text()}`);
+    throw new Error(
+      `Analysis failed: ${analysisResponse.status} ${await analysisResponse.text()}`,
+    );
   }
 
   const analysisBody = (await analysisResponse.json()) as {
@@ -85,19 +137,25 @@ async function main(): Promise<void> {
   };
 
   const recResponse = await fetch(
-    `${apiUrl}/v1/recommendations?tenantId=${encodeURIComponent(tenantId)}&productId=${encodeURIComponent(productId)}&installationId=${encodeURIComponent(installationId)}`,
+    `${apiUrl}/v1/recommendations?tenantId=${encodeURIComponent(tenantId)}&productId=${encodeURIComponent(canonicalProductId)}&installationId=${encodeURIComponent(canonicalInstallationId)}`,
     {
       headers: {
-        "x-zolt-api-key": apiKey
-      }
-    }
+        "x-zolt-api-key": apiKey,
+      },
+    },
   );
 
   if (!recResponse.ok) {
-    throw new Error(`Recommendation fetch failed: ${recResponse.status} ${await recResponse.text()}`);
+    throw new Error(
+      `Recommendation fetch failed: ${recResponse.status} ${await recResponse.text()}`,
+    );
   }
 
-  const persisted = (await recResponse.json()) as Array<{ id: string; type: string; title: string }>;
+  const persisted = (await recResponse.json()) as Array<{
+    id: string;
+    type: string;
+    title: string;
+  }>;
 
   if (analysisBody.recommendations.length === 0) {
     throw new Error("Smoke generated zero recommendations.");
@@ -106,18 +164,22 @@ async function main(): Promise<void> {
     throw new Error("Smoke found zero persisted recommendations.");
   }
 
-  const generatedIds = new Set(analysisBody.recommendations.map((item) => item.id));
+  const generatedIds = new Set(
+    analysisBody.recommendations.map((item) => item.id),
+  );
   const persistedIds = new Set(persisted.map((item) => item.id));
   for (const recommendationId of generatedIds) {
     if (!persistedIds.has(recommendationId)) {
-      throw new Error(`Recommendation ${recommendationId} was generated but not persisted.`);
+      throw new Error(
+        `Recommendation ${recommendationId} was generated but not persisted.`,
+      );
     }
   }
 
   console.log("Smoke completed", {
     advisoryOnly: analysisBody.advisoryOnly,
     generatedRecommendationCount: analysisBody.recommendations.length,
-    persistedRecommendationCount: persisted.length
+    persistedRecommendationCount: persisted.length,
   });
 }
 

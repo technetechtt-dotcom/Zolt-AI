@@ -1,0 +1,41 @@
+{
+  "manufacturer": "Industrial Modbus Emulator",
+  "model": "Zolt verification profile v1",
+  "protocolVersion": "Modbus RTU",
+  "baudRate": 9600,
+  "parity": "Even",
+  "dataBits": 8,
+  "stopBits": "One",
+  "slaveId": 1,
+  "registers": [
+    {
+      "address": 100,
+      "key": "voltage",
+      "unit": "V",
+      "dataType": "uint16",
+      "scale": 0.1
+    },
+    {
+      "address": 101,
+      "key": "frequencyHz",
+      "unit": "Hz",
+      "dataType": "uint16",
+      "scale": 0.01
+    },
+    {
+      "address": 102,
+      "key": "powerKw",
+      "unit": "kW",
+      "dataType": "int32",
+      "scale": 0.001,
+      "wordOrder": "big"
+    },
+    {
+      "address": 104,
+      "key": "currentA",
+      "unit": "A",
+      "dataType": "int16",
+      "scale": 0.1
+    }
+  ]
+}

@@ -7,7 +7,7 @@ Production secrets must live in a managed secrets service (AWS Secrets Manager, 
 - `DATABASE_URL`
 - `REDIS_URL`
 - `ZOLT_MASTER_KEY` (wraps signing and webhook secrets at rest)
-- optional bootstrap `ZOLT_API_KEY` / `ZOLT_INGEST_HMAC_SECRET` only for first-run seed
+- one-time `ZOLT_SEED_API_KEY` / `ZOLT_SEED_HMAC_SECRET` only for first-run seed; never expose them to a production service process
 
 Do not commit `.env` files. CI scans for private keys and common token patterns.
 

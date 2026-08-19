@@ -1,17 +1,29 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { ZoltTelemetryEnvelope } from "../packages/contracts/src/index.js";
 import type { GatewayDependencies } from "../apps/connector-gateway/src/server.js";
 import { createTestTelemetryEnvelope } from "./helpers/fixtures.js";
 
 vi.mock("@zolt/database", () => ({
-  saveTelemetryEnvelope: vi.fn(async () => undefined)
+  saveTelemetryEnvelope: vi.fn(async () => undefined),
 }));
 
 vi.mock("@zolt/queue", () => ({
-  enqueueTelemetry: vi.fn(async () => undefined)
+  enqueueTelemetry: vi.fn(async () => undefined),
 }));
 
-let buildGatewayApp: (deps: GatewayDependencies, options?: { logger?: boolean }) => any;
+let buildGatewayApp: (
+  deps: GatewayDependencies,
+  options?: { logger?: boolean },
+) => any;
 
 beforeAll(async () => {
   const module = await import("../apps/connector-gateway/src/server.js");
@@ -28,14 +40,14 @@ function createGatewayDependencies(): GatewayDependencies {
       validatePayload: vi.fn(() => ({ valid: true, errors: [] })),
       transform: vi.fn(async () => {
         const message: ZoltTelemetryEnvelope = createTestTelemetryEnvelope({
-          messageId: "gw-message-1"
+          messageId: "gw-message-1",
         });
         return [message];
-      })
+      }),
     } as GatewayDependencies["connector"],
     enqueueTelemetry: vi.fn(async () => undefined),
     verifyTenantAccess: vi.fn(async () => true),
-    readinessCheck: vi.fn(async () => true)
+    readinessCheck: vi.fn(async () => true),
   };
 }
 
@@ -57,7 +69,12 @@ describe("Gateway routes", () => {
     const response = await app.inject({
       method: "POST",
       url: "/v1/ingest/gridflex",
-      payload: { messageId: "m", nodeId: "n", timestamp: new Date().toISOString(), readings: {} }
+      payload: {
+        messageId: "m",
+        nodeId: "n",
+        timestamp: new Date().toISOString(),
+        readings: {},
+      },
     });
 
     expect(response.statusCode).toBe(401);
@@ -66,7 +83,10 @@ describe("Gateway routes", () => {
 
   it("returns 400 for invalid connector payload", async () => {
     const deps = createGatewayDependencies();
-    deps.connector.validatePayload = vi.fn(() => ({ valid: false, errors: ["bad payload"] }));
+    deps.connector.validatePayload = vi.fn(() => ({
+      valid: false,
+      errors: ["bad payload"],
+    }));
     const app = buildGatewayApp(deps, { logger: false });
 
     const response = await app.inject({
@@ -75,9 +95,9 @@ describe("Gateway routes", () => {
       headers: {
         "x-zolt-tenant-id": "tenant-1",
         "x-zolt-product-id": "product-1",
-        "x-zolt-installation-id": "installation-1"
+        "x-zolt-installation-id": "installation-1",
       },
-      payload: { any: "value" }
+      payload: { any: "value" },
     });
 
     expect(response.statusCode).toBe(400);
@@ -94,14 +114,14 @@ describe("Gateway routes", () => {
       headers: {
         "x-zolt-tenant-id": "tenant-1",
         "x-zolt-product-id": "product-1",
-        "x-zolt-installation-id": "installation-1"
+        "x-zolt-installation-id": "installation-1",
       },
       payload: {
         messageId: "m-good",
         nodeId: "node-1",
         timestamp: new Date().toISOString(),
-        readings: { powerKw: 123.4 }
-      }
+        readings: { powerKw: 123.4 },
+      },
     });
 
     expect(response.statusCode).toBe(202);
@@ -120,17 +140,57 @@ describe("Gateway routes", () => {
       headers: {
         "x-zolt-tenant-id": "tenant-1",
         "x-zolt-product-id": "product-1",
-        "x-zolt-installation-id": "installation-1"
+        "x-zolt-installation-id": "installation-1",
       },
       payload: {
         messageId: "m-resilient",
         nodeId: "node-1",
         timestamp: new Date().toISOString(),
-        readings: { powerKw: 99.1 }
-      }
+        readings: { powerKw: 99.1 },
+      },
     });
 
     expect(response.statusCode).toBe(403);
+    await app.close();
+  });
+
+  it("canonicalises external keys and enforces the resolved connector scope", async () => {
+    const deps = createGatewayDependencies();
+    deps.verifyTenantAccess = vi.fn(async () => ({
+      tenantId: "tenant-1",
+      productId: "product-db-id",
+      installationId: "installation-db-id",
+    }));
+    deps.connector.transform = vi.fn(async (_payload, context) => [
+      createTestTelemetryEnvelope({
+        tenantId: context.tenantId,
+        productId: context.productId,
+        installationId: context.installationId,
+      }),
+    ]);
+    const app = buildGatewayApp(deps, { logger: false });
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/ingest/gridflex",
+      headers: {
+        "x-zolt-tenant-id": "tenant-1",
+        "x-zolt-product-id": "external-product-key",
+        "x-zolt-installation-id": "external-installation-key",
+      },
+      payload: {
+        messageId: "m-canonical",
+        nodeId: "node-1",
+        timestamp: new Date().toISOString(),
+        readings: { powerKw: 12 },
+      },
+    });
+    expect(response.statusCode).toBe(202);
+    expect(deps.enqueueTelemetry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: "product-db-id",
+        installationId: "installation-db-id",
+      }),
+    );
     await app.close();
   });
 });

@@ -2,12 +2,12 @@
 
 ## SLIs / SLOs
 
-| SLI | SLO |
-| --- | --- |
-| API availability | 99.5% monthly excluding planned maintenance |
-| Ingest success rate | 99% of authenticated valid payloads accepted |
-| Recommendation freshness | 95% of ingest jobs processed within 2 minutes |
-| Webhook delivery | 99% delivered or in retry/DLQ within 15 minutes |
+| SLI                      | SLO                                             |
+| ------------------------ | ----------------------------------------------- |
+| API availability         | 99.5% monthly excluding planned maintenance     |
+| Ingest success rate      | 99% of authenticated valid payloads accepted    |
+| Recommendation freshness | 95% of ingest jobs processed within 2 minutes   |
+| Webhook delivery         | 99% delivered or in retry/DLQ within 15 minutes |
 
 ## Alert thresholds
 
@@ -29,7 +29,20 @@ Escalate to the on-call engineer, then the tenant administrator for customer-imp
 1. Take an encrypted logical dump of PostgreSQL (`pg_dump -Fc`).
 2. Restore into a scratch database.
 3. Run `pnpm db:deploy` (should be no-op) and `pnpm smoke:e2e` against the restored data with a throwaway credential.
-4. Record the drill date in the operations log.
+4. Run `pnpm test:restore` where the Compose database is the intended test source.
+5. Attach the generated `docs/operations/backup-restore-result.json`, record RPO/RTO, encryption/KMS and witness in the operations log.
+
+## Credential lifecycle
+
+- Review `expiryWarning` credentials daily and notify tenant administrators at the configured warning horizon.
+- Rotate through `POST /v1/credentials/:id/rotate`; distribute the one-time replacement using the managed secrets provider, verify use, then remove the old secret.
+- High-risk scopes remain `PENDING_APPROVAL` until `POST /v1/credentials/:id/approve` by an administrator.
+- Use `/v1/credentials/emergency-revoke` for a compromised user, service account or device; investigate every event in audit.
+- Production promotion includes rotating every pilot/development API, service-account, device, webhook, database and Redis credential.
+
+## Queue recovery
+
+Use `/v1/queues/health` for depth and oldest-message age. Poison inputs are isolated from transient failures. Administrators inspect `/v1/queues/dead-letter?quarantined=true`, retry one job only after remediation, and use purge only under an approved incident/change record. Stable recommendation IDs and non-resetting decision status make concurrent worker retry idempotent.
 
 ## Migration rollback
 

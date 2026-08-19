@@ -1,11 +1,20 @@
 import { z } from "zod";
 
-export const MeasurementQuality = z.enum(["GOOD", "UNCERTAIN", "STALE", "INVALID", "ESTIMATED", "MISSING"]);
+export const MeasurementQuality = z.enum([
+  "GOOD",
+  "UNCERTAIN",
+  "STALE",
+  "INVALID",
+  "ESTIMATED",
+  "MISSING",
+]);
 export const SchemaVersion = z.enum(["1.0", "1.1"]);
 export const MAX_TELEMETRY_BATCH = 100;
 export const MAX_MEASUREMENTS = 500;
 
-const finiteNumber = z.number().refine((value) => Number.isFinite(value), "non-finite");
+const finiteNumber = z
+  .number()
+  .refine((value) => Number.isFinite(value), "non-finite");
 
 export const MeasurementSchema = z
   .object({
@@ -15,7 +24,9 @@ export const MeasurementSchema = z
     quality: MeasurementQuality,
     minimumExpected: finiteNumber.optional(),
     maximumExpected: finiteNumber.optional(),
-    metadata: z.record(z.union([z.string(), finiteNumber, z.boolean()])).optional()
+    metadata: z
+      .record(z.union([z.string(), finiteNumber, z.boolean()]))
+      .optional(),
   })
   .strict();
 
@@ -40,7 +51,9 @@ export const TelemetryEnvelopeSchema = z
     communicationHealth: z.enum(["HEALTHY", "DEGRADED", "FAILED"]).optional(),
     measurements: z.array(MeasurementSchema).min(1).max(MAX_MEASUREMENTS),
     deviceState: z.record(z.unknown()).optional(),
-    metadata: z.record(z.union([z.string(), finiteNumber, z.boolean()])).optional()
+    metadata: z
+      .record(z.union([z.string(), finiteNumber, z.boolean()]))
+      .optional(),
   })
   .strict();
 
@@ -54,7 +67,7 @@ export const RecommendationStatus = z.enum([
   "REJECTED",
   "EXPIRED",
   "SUPERSEDED",
-  "RESOLVED"
+  "RESOLVED",
 ]);
 export type RecommendationStatus = z.infer<typeof RecommendationStatus>;
 
@@ -72,7 +85,7 @@ export const PermissionKey = z.enum([
   "integration:manage",
   "webhook:manage",
   "audit:read",
-  "admin:manage"
+  "admin:manage",
 ]);
 export type PermissionKey = z.infer<typeof PermissionKey>;
 
@@ -86,7 +99,7 @@ export const RoleKey = z.enum([
   "analyst",
   "auditor",
   "api-integration",
-  "device"
+  "device",
 ]);
 export type RoleKey = z.infer<typeof RoleKey>;
 
@@ -103,7 +116,7 @@ export const ROLE_PERMISSIONS: Record<RoleKey, PermissionKey[]> = {
     "recommendation:reject",
     "installation:read",
     "device:read",
-    "audit:read"
+    "audit:read",
   ],
   engineer: [
     "telemetry:read",
@@ -112,12 +125,34 @@ export const ROLE_PERMISSIONS: Record<RoleKey, PermissionKey[]> = {
     "installation:read",
     "installation:manage",
     "device:read",
-    "device:manage"
+    "device:manage",
   ],
-  technician: ["telemetry:read", "recommendation:read", "recommendation:acknowledge", "installation:read", "device:read"],
-  operator: ["telemetry:read", "recommendation:read", "recommendation:acknowledge", "installation:read", "device:read"],
-  analyst: ["telemetry:read", "recommendation:read", "installation:read", "audit:read"],
-  auditor: ["telemetry:read", "recommendation:read", "installation:read", "audit:read"],
+  technician: [
+    "telemetry:read",
+    "recommendation:read",
+    "recommendation:acknowledge",
+    "installation:read",
+    "device:read",
+  ],
+  operator: [
+    "telemetry:read",
+    "recommendation:read",
+    "recommendation:acknowledge",
+    "installation:read",
+    "device:read",
+  ],
+  analyst: [
+    "telemetry:read",
+    "recommendation:read",
+    "installation:read",
+    "audit:read",
+  ],
+  auditor: [
+    "telemetry:read",
+    "recommendation:read",
+    "installation:read",
+    "audit:read",
+  ],
   "api-integration": [
     "telemetry:read",
     "telemetry:write",
@@ -125,10 +160,11 @@ export const ROLE_PERMISSIONS: Record<RoleKey, PermissionKey[]> = {
     "recommendation:acknowledge",
     "recommendation:approve",
     "recommendation:reject",
+    "installation:read",
     "integration:manage",
-    "webhook:manage"
+    "webhook:manage",
   ],
-  device: ["telemetry:write"]
+  device: ["telemetry:write"],
 };
 
 export interface ZoltEvidence {
@@ -177,12 +213,15 @@ export interface ZoltRecommendation {
   updatedAt: string;
 }
 
-export const PHYSICAL_RANGES: Record<string, { min: number; max: number; unit?: string }> = {
+export const PHYSICAL_RANGES: Record<
+  string,
+  { min: number; max: number; unit?: string }
+> = {
   powerKw: { min: -50, max: 5000, unit: "kW" },
   voltage: { min: 0, max: 1500, unit: "V" },
   frequencyHz: { min: 45, max: 65, unit: "Hz" },
   currentA: { min: -2000, max: 2000, unit: "A" },
   temperatureC: { min: -40, max: 120, unit: "C" },
   socPct: { min: 0, max: 100, unit: "%" },
-  powerFactor: { min: -1, max: 1 }
+  powerFactor: { min: -1, max: 1 },
 };

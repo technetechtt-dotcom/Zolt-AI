@@ -3,17 +3,81 @@ export {
   ensureInstallationIdentity,
   resolveInstallationIdentity,
   resolveProductIdentity,
-  assertTenantOwns
+  assertTenantOwns,
+  getTelemetryValidationProfile,
 } from "./repositories/installations.js";
-export { saveTelemetryEnvelope, listTelemetryForInstallation } from "./repositories/telemetry.js";
+export {
+  saveTelemetryEnvelope,
+  listTelemetryForInstallation,
+} from "./repositories/telemetry.js";
 export {
   saveRecommendations,
   listRecommendations,
   updateRecommendationStatus,
-  recordRecommendationFeedback
+  recordRecommendationFeedback,
+  hasRecommendationAccess,
 } from "./repositories/recommendations.js";
 export { writeAuditEvent, listAuditEvents } from "./repositories/audit.js";
-export { resolveApiCredential, createApiCredential, listApiCredentials, revokeApiCredential, rotateApiCredential } from "./repositories/credentials.js";
-export { listActiveWebhooks, recordWebhookDelivery, markWebhookResult, createWebhookEndpoint, listWebhookEndpoints, listWebhookDeliveries } from "./repositories/webhooks.js";
-export { authenticateUser, resolveSession, revokeSession, inviteUser, listTenantUsers } from "./repositories/users.js";
-export { listInstallations, listDevices, listAssets, recordUsage, archiveExpiredRecommendations } from "./repositories/fleet.js";
+export {
+  approveApiCredential,
+  createApiCredential,
+  credentialExpiryFromDays,
+  credentialExpiryPolicy,
+  listApiCredentials,
+  resolveApiCredential,
+  revokeApiCredential,
+  revokeCredentialsForIdentity,
+  rotateApiCredential,
+} from "./repositories/credentials.js";
+export {
+  createWebhookEndpoint,
+  getWebhookDeliveryForRedelivery,
+  getWebhookForDelivery,
+  listActiveWebhooks,
+  listWebhookDeliveries,
+  listWebhookEndpoints,
+  markWebhookResult,
+  recordWebhookDelivery,
+  rotateWebhookSecret,
+} from "./repositories/webhooks.js";
+export {
+  acceptInvitation,
+  assignUserRole,
+  authenticateUser,
+  beginMfaEnrollment,
+  confirmMfaEnrollment,
+  deactivateUser,
+  grantInstallationAccess,
+  inviteUser,
+  issueAccountUnlock,
+  issueEmailVerification,
+  listDormantUsers,
+  listTenantRoles,
+  listTenantUsers,
+  listUserTenants,
+  listUserSessions,
+  removeUserRole,
+  requestPasswordReset,
+  resetPassword,
+  resolveSession,
+  revokeAllUserSessions,
+  revokeSession,
+  revokeSessionById,
+  switchTenantSession,
+  unlockAccount,
+  verifyEmail,
+} from "./repositories/users.js";
+export {
+  archiveExpiredRecommendations,
+  hasInstallationAccess,
+  listAssets,
+  listDevices,
+  listInstallations,
+  recordUsage,
+} from "./repositories/fleet.js";
+export {
+  deleteOffboardedTenant,
+  exportTenantData,
+  offboardTenant,
+  runRetentionJobs,
+} from "./repositories/operations.js";

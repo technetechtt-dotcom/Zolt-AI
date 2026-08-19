@@ -24,7 +24,13 @@
     "db:migrate": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema packages/database/prisma/schema.prisma",
     "db:seed": "tsx packages/database/prisma/seed.ts",
-    "smoke:e2e": "tsx scripts/smoke-e2e.ts"
+    "smoke:e2e": "tsx scripts/smoke-e2e.ts",
+    "test:db-isolation": "tsx scripts/verify-tenant-constraints.ts",
+    "test:load": "tsx scripts/load-test.ts",
+    "test:soak": "tsx scripts/load-test.ts",
+    "test:restore": "powershell -ExecutionPolicy Bypass -File scripts/verify-backup-restore.ps1",
+    "test:chaos": "powershell -ExecutionPolicy Bypass -File scripts/chaos-test.ps1",
+    "test:hil": "powershell -ExecutionPolicy Bypass -File scripts/hil-gridflex-rs485.ps1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
@@ -36,9 +42,16 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
-    "@prisma/client": "^6.1.0",
+    "@prisma/client": "^6.19.3",
+    "@zolt/auth": "workspace:*",
     "dotenv": "^17.4.2",
     "fastify": "^5.2.0",
     "zod": "^3.24.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "@fastify/ajv-compiler>fast-uri": "3.1.5",
+      "fast-json-stringify>fast-uri": "4.1.2"
+    }
   }
 }

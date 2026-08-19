@@ -16,6 +16,7 @@
     "@zolt/capability-energy": "workspace:*",
     "@zolt/database": "workspace:*",
     "@zolt/queue": "workspace:*",
-    "@zolt/observability": "workspace:*"
+    "@zolt/observability": "workspace:*",
+    "@zolt/auth": "workspace:*"
   }
 }

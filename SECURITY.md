@@ -25,3 +25,8 @@ We aim to acknowledge reports within 5 business days and to provide a remediatio
 - Database-backed credentials; hashed keys only
 - Redis required for replay protection
 - Secrets stored in a managed secrets service, not in git
+- `ZOLT_API_KEY` and every environment bootstrap flag unset; startup rejects them
+- API/service/device credentials expire, warn before expiry and are approval-gated for high-risk scopes
+- Webhooks use HTTPS, public resolved destinations, pinned delivery addresses, redirect revalidation, safe ports, response/time limits and quotas
+- MFA enabled for privileged human accounts; sessions and credentials are centrally revocable
+- Independent penetration test and remediation/retest evidence attached before production

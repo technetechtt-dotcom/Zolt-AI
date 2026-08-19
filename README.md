@@ -47,14 +47,14 @@ Console: `http://localhost:4002`
 API: `http://localhost:4000`
 Gateway: `http://localhost:4001`
 
-Seed admin: `admin@zolt.local` / `ChangeMeNow!23` (change immediately).
+Development seed admin: `admin@zolt.local` / `ChangeMeNow!23`. Production seeding rejects these defaults.
 
 ## Production deployment
 
 1. Provision managed PostgreSQL, Redis, and a secrets manager.
 2. Set `NODE_ENV=production`, `ZOLT_ADVISORY_ONLY=true`, `ZOLT_TLS_TERMINATED=true`.
 3. Do not set `ZOLT_ALLOW_INSECURE_AUTH`.
-4. Replace `ZOLT_API_KEY` with database-backed credentials after first seed.
+4. Keep `ZOLT_API_KEY` unset. Inject `ZOLT_SEED_API_KEY` and `ZOLT_SEED_HMAC_SECRET` only for the one-time database seed, then remove and rotate them.
 5. Deploy API, gateway, worker, and console images with immutable tags.
 6. Run `pnpm db:deploy` then `pnpm db:seed` once per environment.
 7. Put TLS termination and trusted proxies in front of the API.

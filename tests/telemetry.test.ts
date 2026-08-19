@@ -6,8 +6,8 @@ describe("Telemetry validation", () => {
   it("rejects NaN and infinite values", () => {
     const result = validateTelemetryEnvelope(
       createTestTelemetryEnvelope({
-        measurements: [{ key: "powerKw", value: Number.NaN, quality: "GOOD" }]
-      })
+        measurements: [{ key: "powerKw", value: Number.NaN, quality: "GOOD" }],
+      }),
     );
     expect(result.errors.length).toBeGreaterThan(0);
   });
@@ -15,19 +15,25 @@ describe("Telemetry validation", () => {
   it("rejects impossible physical ranges", () => {
     const result = validateTelemetryEnvelope(
       createTestTelemetryEnvelope({
-        measurements: [{ key: "voltage", value: 9000, unit: "V", quality: "GOOD" }]
-      })
+        measurements: [
+          { key: "voltage", value: 9000, unit: "V", quality: "GOOD" },
+        ],
+      }),
     );
-    expect(result.errors.some((item) => item.includes("physical range"))).toBe(true);
+    expect(result.errors.some((item) => item.includes("physical range"))).toBe(
+      true,
+    );
   });
 
   it("rejects oversized batches via schema measurement cap", () => {
     const measurements = Array.from({ length: 501 }, (_, index) => ({
       key: "powerKw",
       value: 1,
-      quality: "GOOD" as const
+      quality: "GOOD" as const,
     }));
-    const result = validateTelemetryEnvelope(createTestTelemetryEnvelope({ measurements }));
+    const result = validateTelemetryEnvelope(
+      createTestTelemetryEnvelope({ measurements }),
+    );
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
@@ -37,10 +43,23 @@ describe("Telemetry validation", () => {
     const result = validateTelemetryEnvelope(
       createTestTelemetryEnvelope({
         sourceTimestamp: source.toISOString(),
-        receivedTimestamp: received.toISOString()
-      })
+        receivedTimestamp: received.toISOString(),
+      }),
     );
     expect(result.envelope).toBeDefined();
     expect(result.delayed).toBe(true);
+  });
+
+  it("applies installation or asset-specific physical limits", () => {
+    const result = validateTelemetryEnvelope(
+      createTestTelemetryEnvelope({
+        measurements: [
+          { key: "powerKw", value: 110, unit: "kW", quality: "GOOD" },
+        ],
+      }),
+      undefined,
+      { physicalRanges: { powerKw: { min: 0, max: 100, unit: "kW" } } },
+    );
+    expect(result.errors).toContain("physical range violated for powerKw");
   });
 });
