@@ -43,7 +43,7 @@
     "evidence:dataset": "tsx scripts/ml-dataset-audit.ts"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.2.0",
     "eslint": "^9.17.0",
     "prettier": "^3.4.2",
     "prisma": "^6.1.0",
