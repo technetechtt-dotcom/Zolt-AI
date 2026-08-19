@@ -1,19 +1,42 @@
 # Production-readiness evidence ledger
 
-Updated: 2026-08-12
+Updated: 2026-08-19
 
-| Evidence                        | Harness / control                                                                                     | Current result                                                                                                                                                         |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local automated verification    | Prisma validation/generation, TypeScript, Vitest, ESLint, secret scan and production dependency audit | PASS: schema valid, 14 test files / 68 tests passed, lint and secret scan passed, and no known production dependency vulnerabilities were reported.                    |
-| GitHub `main` CI                | `.github/workflows/ci.yml` and GitHub Actions                                                         | Latest observed run `31592875548` failed before tests: conflicting pnpm versions and nonexistent Trivy tag. Workflow repaired locally; a new run requires commit/push. |
-| Tenant DB constraints           | `pnpm test:db-isolation`                                                                              | Harness implemented; local execution pending PostgreSQL. CI runs it after migrations.                                                                                  |
-| GridFlex protocol faults        | `tests/hil-gridflex.test.ts`                                                                          | Emulator-level automated tests pass.                                                                                                                                   |
-| Physical GridFlex RS485         | `pnpm test:hil -- --PortName COMx`                                                                    | Not executed: no Edge Node/RS485 inverter was available in this environment.                                                                                           |
-| Load                            | `pnpm test:load` with 10/100/1,000/10,000 devices                                                     | Harness implemented; not executed because API/Redis/PostgreSQL were not running.                                                                                       |
-| Soak                            | `ZOLT_LOAD_MESSAGES_PER_DEVICE=... pnpm test:soak`                                                    | Harness implemented; 24-hour and multi-day evidence pending.                                                                                                           |
-| Chaos                           | `pnpm test:chaos -- -Target redis` / `postgres`                                                       | Harness implemented; not executed because Docker Desktop was unavailable.                                                                                              |
-| Backup restore                  | `pnpm test:restore`                                                                                   | Harness implemented; not executed because Docker Desktop was unavailable. It writes measured RTO/RPO evidence on success.                                              |
-| Independent penetration test    | external CREST/OSCP-qualified assessor                                                                | Not executed; cannot be self-attested by the implementation team.                                                                                                      |
-| Production secrets and rotation | managed secrets provider plus credential rotation APIs                                                | Startup gate implemented; no production environment or secret values were supplied, so deployment/rotation remains pending.                                            |
+This file tracks **external validation blockers** that cannot be completed by code alone.
 
-Only a produced result file under `docs/operations/`, reviewed and signed by the responsible operator, changes an operational item to complete.
+## Mandatory evidence checklist
+
+| Blocker | Command / source of truth | Required artifact | Status |
+| --- | --- | --- | --- |
+| Physical GridFlex HIL (real Edge Node, real RS485, named inverter or high-fidelity emulator) | `pnpm test:hil -- --PortName COMx` | `docs/HIL_TEST_REPORT.md` updated with executed details and sign-off | Pending |
+| Load test tier 10 devices | `pnpm test:load:10` | `docs/operations/load-10.json` | Pending |
+| Load test tier 100 devices | `pnpm test:load:100` | `docs/operations/load-100.json` | Pending |
+| Load test tier 1,000 devices | `pnpm test:load:1000` | `docs/operations/load-1000.json` | Pending |
+| Load test tier 10,000 devices | `pnpm test:load:10000` | `docs/operations/load-10000.json` | Pending |
+| Reconnect burst testing | `pnpm test:reconnect-burst` | `docs/operations/reconnect-burst.json` | Pending |
+| 24-hour soak | `pnpm test:soak:24h` | `docs/operations/soak-24h.json` | Pending |
+| Multi-day soak | `pnpm test:soak:multiday` | `docs/operations/soak-multiday.json` | Pending |
+| Production chaos test | `pnpm test:chaos -- -Target redis` and `pnpm test:chaos -- -Target postgres` | `docs/operations/chaos-result.json` | Pending |
+| Clean backup restoration | `pnpm test:restore` | `docs/operations/backup-restore-result.json` | Pending |
+| PITR validation | `pnpm test:pitr` | `docs/operations/pitr-result.json` | Pending |
+| Measured RPO and RTO acceptance | consolidate from restore + PITR artifacts | `docs/BACKUP_RESTORE_PROOF.md` with measured values | Pending |
+| Independent penetration test | External assessor report | `docs/PENETRATION_TEST_REPORT.md` | Pending |
+| Pen-test remediation | Internal ticket closure list | `docs/PENETRATION_TEST_REPORT.md` remediation section | Pending |
+| Pen-test retest | External assessor retest report | `docs/PENETRATION_TEST_REPORT.md` retest section | Pending |
+| Managed production secrets | Deployed secrets manager integration | `docs/SECRETS.md` production deployment section with evidence links | Pending |
+| Rotate all pilot credentials | API/UI rotation records + audit | `docs/operations/credential-rotation.json` | Pending |
+| Deploy real observability backends | Prometheus/Grafana/OTel deployment evidence | `docs/operations/observability-deploy.json` | Pending |
+| Deploy real alert routing | Pager/alert destination proof | `docs/operations/alert-routing.json` | Pending |
+
+## Automation gates
+
+- `pnpm evidence:verify` checks critical evidence documents for required sections.
+- Release tags (`v*`) enforce `evidence-release-gate` in CI.
+- CI now blocks on critical security findings and release-time high+critical findings.
+
+## Sign-off rule
+
+No item may be marked complete without:
+1. Artifact in `docs/operations/`
+2. Timestamp and responsible operator
+3. Reviewer sign-off

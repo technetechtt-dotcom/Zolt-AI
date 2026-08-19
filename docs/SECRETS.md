@@ -21,3 +21,12 @@ Do not commit `.env` files. CI scans for private keys and common token patterns.
 6. Revoke sessions after suspected account compromise (`POST /v1/auth/logout` plus password reset).
 
 Replay keys are single-use for 10 minutes. Signing timestamps older than 5 minutes are rejected.
+
+## Pilot credential rotation completion checklist
+
+- [ ] Export active credentials for every pilot tenant
+- [ ] Rotate all API credentials and webhook secrets
+- [ ] Verify old credentials are revoked and unusable
+- [ ] Capture evidence in `docs/operations/credential-rotation.json`
+- [ ] Confirm managed secrets backend references were updated
+- [ ] Confirm no plaintext key remains in environment variables

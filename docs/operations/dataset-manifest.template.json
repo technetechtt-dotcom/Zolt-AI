@@ -1,0 +1,23 @@
+{
+  "datasetId": "plant-fleet-2026-q4-v1",
+  "sourcePlantIds": ["plant-a", "plant-b"],
+  "includes": {
+    "telemetry": true,
+    "inverterFaults": true,
+    "curtailmentEvents": true,
+    "weather": true,
+    "operatorLabels": true
+  },
+  "splits": {
+    "train": 0.7,
+    "validation": 0.15,
+    "test": 0.15,
+    "splitStrategy": "time-based"
+  },
+  "leakageControls": [
+    "No overlap of time windows between train/validation/test",
+    "Feature engineering fitted on train set only",
+    "Per-plant normalization parameters derived only from train data"
+  ],
+  "approvedBy": "ml-lead@example.com"
+}

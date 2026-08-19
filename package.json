@@ -27,10 +27,20 @@
     "smoke:e2e": "tsx scripts/smoke-e2e.ts",
     "test:db-isolation": "tsx scripts/verify-tenant-constraints.ts",
     "test:load": "tsx scripts/load-test.ts",
+    "test:load:10": "tsx scripts/load-test.ts --tier 10",
+    "test:load:100": "tsx scripts/load-test.ts --tier 100",
+    "test:load:1000": "tsx scripts/load-test.ts --tier 1000",
+    "test:load:10000": "tsx scripts/load-test.ts --tier 10000",
+    "test:reconnect-burst": "tsx scripts/load-test.ts --tier 100 --reconnect-every 2 --reconnect-pause-ms 1200",
+    "test:soak:24h": "tsx scripts/load-test.ts --tier 100 --soak-minutes 1440",
+    "test:soak:multiday": "tsx scripts/load-test.ts --tier 100 --soak-minutes 4320",
     "test:soak": "tsx scripts/load-test.ts",
     "test:restore": "powershell -ExecutionPolicy Bypass -File scripts/verify-backup-restore.ps1",
+    "test:pitr": "powershell -ExecutionPolicy Bypass -File scripts/verify-pitr.ps1",
     "test:chaos": "powershell -ExecutionPolicy Bypass -File scripts/chaos-test.ps1",
-    "test:hil": "powershell -ExecutionPolicy Bypass -File scripts/hil-gridflex-rs485.ps1"
+    "test:hil": "powershell -ExecutionPolicy Bypass -File scripts/hil-gridflex-rs485.ps1",
+    "evidence:verify": "tsx scripts/verify-readiness-evidence.ts",
+    "evidence:dataset": "tsx scripts/ml-dataset-audit.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
