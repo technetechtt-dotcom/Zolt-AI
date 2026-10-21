@@ -73,6 +73,7 @@ async function send(index: number): Promise<Result> {
   try {
     const response = await fetch(url, {
       method: "POST",
+      signal: AbortSignal.timeout(15_000),
       headers: {
         "content-type": "application/json",
         "x-zolt-api-key": apiKey,
@@ -97,44 +98,109 @@ function percentile(values: number[], value: number): number {
 }
 
 async function runBurst(taskCount: number): Promise<Result[]> {
-  const tasks = Array.from({ length: taskCount }, (_, index) => index);
   const results: Result[] = [];
+  let cursor = 0;
   async function worker(): Promise<void> {
-    while (tasks.length) {
-      const next = tasks.shift();
-      if (next === undefined) return;
+    while (true) {
+      const next = cursor;
+      cursor += 1;
+      if (next >= taskCount) return;
       results.push(await send(next));
     }
   }
-  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, taskCount) }, () => worker()),
+  );
   return results;
 }
 
 const started = performance.now();
 const startedAt = Date.now();
-const allResults: Result[] = [];
 let reconnectBursts = 0;
+let messages = 0;
+let successful = 0;
+let failed = 0;
+const latencies: number[] = [];
+const statusCodes = new Map<number, number>();
+
+function ingest(results: Result[]): void {
+  for (const result of results) {
+    messages += 1;
+    if (messages % 5_000 === 0) {
+      process.stderr.write(`load-progress messages=${messages} failed=${failed}\n`);
+    }
+    if (result.ok) successful += 1;
+    else failed += 1;
+    if (result.latencyMs > 0) {
+      latencies.push(result.latencyMs);
+      if (latencies.length > 50_000) latencies.splice(0, latencies.length - 20_000);
+    }
+    statusCodes.set(result.status, (statusCodes.get(result.status) ?? 0) + 1);
+  }
+}
+
+async function checkpoint(cycle: number): Promise<void> {
+  const durationMs = performance.now() - started;
+  const sorted = [...latencies].sort((a, b) => a - b);
+  const report = {
+    generatedAt: new Date().toISOString(),
+    target: url,
+    simulated: true,
+    tier,
+    deviceCount,
+    messagesPerDevice,
+    soakMinutes,
+    reconnectEvery,
+    reconnectPauseMs,
+    reconnectBursts,
+    cycle,
+    inProgress: soakMinutes > 0,
+    messages,
+    successful,
+    failed,
+    durationMs: Number(durationMs.toFixed(2)),
+    messagesPerSecond: Number((messages / Math.max(durationMs / 1000, 0.001)).toFixed(2)),
+    latencyMs: {
+      p50: Number(percentile(sorted, 0.5).toFixed(2)),
+      p95: Number(percentile(sorted, 0.95).toFixed(2)),
+      p99: Number(percentile(sorted, 0.99).toFixed(2))
+    },
+    statusCodes: Object.fromEntries(statusCodes)
+  };
+  await mkdir("docs/operations", { recursive: true });
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+}
+
+const reconnectCycles = Number(argValue("--cycles") ?? process.env.ZOLT_LOAD_CYCLES ?? "0");
 
 if (soakMinutes > 0) {
   const endAt = startedAt + soakMinutes * 60_000;
   let cycle = 0;
   while (Date.now() < endAt) {
     cycle += 1;
-    allResults.push(...(await runBurst(deviceCount * messagesPerDevice)));
+    ingest(await runBurst(deviceCount * messagesPerDevice));
     if (reconnectEvery > 0 && cycle % reconnectEvery === 0) {
       reconnectBursts += 1;
       await new Promise((resolve) => setTimeout(resolve, reconnectPauseMs));
     }
+    await checkpoint(cycle);
+  }
+} else if (reconnectEvery > 0 || reconnectCycles > 0) {
+  const cycles = Math.max(reconnectCycles, reconnectEvery > 0 ? 6 : 1);
+  for (let cycle = 1; cycle <= cycles; cycle += 1) {
+    ingest(await runBurst(deviceCount * messagesPerDevice));
+    if (reconnectEvery > 0 && cycle % reconnectEvery === 0 && cycle < cycles) {
+      reconnectBursts += 1;
+      await new Promise((resolve) => setTimeout(resolve, reconnectPauseMs));
+    }
+    await checkpoint(cycle);
   }
 } else {
-  allResults.push(...(await runBurst(deviceCount * messagesPerDevice)));
+  ingest(await runBurst(deviceCount * messagesPerDevice));
 }
 
 const durationMs = performance.now() - started;
-const latencies = allResults
-  .filter((result) => result.latencyMs > 0)
-  .map((result) => result.latencyMs)
-  .sort((a, b) => a - b);
+const sorted = [...latencies].sort((a, b) => a - b);
 const report = {
   generatedAt: new Date().toISOString(),
   target: url,
@@ -146,22 +212,18 @@ const report = {
   reconnectEvery,
   reconnectPauseMs,
   reconnectBursts,
-  messages: allResults.length,
-  successful: allResults.filter((result) => result.ok).length,
-  failed: allResults.filter((result) => !result.ok).length,
+  inProgress: false,
+  messages,
+  successful,
+  failed,
   durationMs: Number(durationMs.toFixed(2)),
-  messagesPerSecond: Number((allResults.length / (durationMs / 1000)).toFixed(2)),
+  messagesPerSecond: Number((messages / Math.max(durationMs / 1000, 0.001)).toFixed(2)),
   latencyMs: {
-    p50: Number(percentile(latencies, 0.5).toFixed(2)),
-    p95: Number(percentile(latencies, 0.95).toFixed(2)),
-    p99: Number(percentile(latencies, 0.99).toFixed(2))
+    p50: Number(percentile(sorted, 0.5).toFixed(2)),
+    p95: Number(percentile(sorted, 0.95).toFixed(2)),
+    p99: Number(percentile(sorted, 0.99).toFixed(2))
   },
-  statusCodes: Object.fromEntries(
-    [...new Set(allResults.map((result) => result.status))].map((status) => [
-      status,
-      allResults.filter((result) => result.status === status).length
-    ])
-  )
+  statusCodes: Object.fromEntries(statusCodes)
 };
 
 await mkdir("docs/operations", { recursive: true });

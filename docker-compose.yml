@@ -1,13 +1,116 @@
 services:
   postgres:
     image: postgres:16-alpine
-    environment: { POSTGRES_USER: zolt, POSTGRES_PASSWORD: zolt, POSTGRES_DB: zolt }
+    container_name: zolt-postgres
+    environment:
+      POSTGRES_USER: zolt
+      POSTGRES_PASSWORD: zolt
+      POSTGRES_DB: zolt
     ports: ["5432:5432"]
-    volumes: ["zolt-postgres:/var/lib/postgresql/data"]
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=test ! -f /var/lib/postgresql/archive/%f && cp %p /var/lib/postgresql/archive/%f
+      - -c
+      - max_wal_senders=10
+      - -c
+      - wal_keep_size=128MB
+      - -c
+      - archive_timeout=30
+    volumes:
+      - zolt-postgres:/var/lib/postgresql/data
+      - zolt-wal-archive:/var/lib/postgresql/archive
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zolt -d zolt"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   redis:
     image: redis:7-alpine
+    container_name: zolt-redis
     ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   mqtt:
     image: eclipse-mosquitto:2
+    container_name: zolt-mqtt
     ports: ["1883:1883"]
-volumes: { zolt-postgres: {} }
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.109.0
+    container_name: zolt-otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./ops/observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports: ["4317:4317", "4318:4318", "9464:9464"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: zolt-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./ops/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/observability/prometheus-alerts.yml:/etc/prometheus/prometheus-alerts.yml:ro
+      - zolt-prometheus:/prometheus
+    ports: ["9090:9090"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: [otel-collector, alertmanager]
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: zolt-alertmanager
+    volumes:
+      - ./ops/observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports: ["9093:9093"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: [alert-sink]
+
+  alert-sink:
+    image: node:22-alpine
+    container_name: zolt-alert-sink
+    working_dir: /app
+    volumes:
+      - ./ops/observability/alert-sink.mjs:/app/alert-sink.mjs:ro
+      - ./docs/operations:/app/docs/operations
+    command: ["node", "alert-sink.mjs"]
+    ports: ["9095:9095"]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: zolt-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: zolt
+      GF_SECURITY_ADMIN_PASSWORD: zolt
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: dark
+    volumes:
+      - ./ops/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - zolt-grafana:/var/lib/grafana
+    ports: ["3000:3000"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: [prometheus]
+
+volumes:
+  zolt-postgres: {}
+  zolt-wal-archive: {}
+  zolt-prometheus: {}
+  zolt-grafana: {}

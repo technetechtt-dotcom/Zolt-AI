@@ -1,0 +1,98 @@
+{
+  "executedAt": "2026-10-21T09:19:30.473Z",
+  "mode": "high-fidelity-modbus-emulator",
+  "physicalRs485": false,
+  "readOnlyFunctionCode": 3,
+  "plantControlEnabled": false,
+  "profile": {
+    "manufacturer": "Industrial Modbus Emulator",
+    "model": "Zolt verification profile v1",
+    "protocolVersion": "Modbus RTU",
+    "registers": [
+      {
+        "address": 100,
+        "key": "voltage",
+        "unit": "V",
+        "dataType": "uint16",
+        "scale": 0.1
+      },
+      {
+        "address": 101,
+        "key": "frequencyHz",
+        "unit": "Hz",
+        "dataType": "uint16",
+        "scale": 0.01
+      },
+      {
+        "address": 102,
+        "key": "powerKw",
+        "unit": "kW",
+        "dataType": "int32",
+        "scale": 0.001,
+        "wordOrder": "big"
+      },
+      {
+        "address": 104,
+        "key": "currentA",
+        "unit": "A",
+        "dataType": "int16",
+        "scale": 0.1
+      }
+    ]
+  },
+  "commitHint": "941f19123cfd",
+  "scenarios": [
+    {
+      "name": "modbus-read-function-03",
+      "result": "PASS",
+      "detail": {
+        "voltage": 400.1,
+        "frequencyHz": 50.01,
+        "powerKw": 42.5,
+        "currentA": 61.2
+      }
+    },
+    {
+      "name": "malformed-crc",
+      "result": "PASS"
+    },
+    {
+      "name": "delayed-telemetry",
+      "result": "PASS"
+    },
+    {
+      "name": "duplicate-store-and-forward",
+      "result": "PASS"
+    },
+    {
+      "name": "impossible-value-rejection",
+      "result": "PASS"
+    },
+    {
+      "name": "communication-loss",
+      "result": "PASS"
+    },
+    {
+      "name": "communication-recovery",
+      "result": "PASS"
+    },
+    {
+      "name": "device-restart-sequence-reset",
+      "result": "PASS"
+    },
+    {
+      "name": "store-and-forward-replay",
+      "result": "PASS"
+    },
+    {
+      "name": "simulated-live-separation",
+      "result": "PASS"
+    },
+    {
+      "name": "plant-control-disabled",
+      "result": "PASS"
+    }
+  ],
+  "result": "PASS",
+  "failed": []
+}

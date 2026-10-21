@@ -1,0 +1,8 @@
+{
+  "executedAt": "2026-10-21T09:51:00.000Z",
+  "receiver": "alert-sink",
+  "webhook": "http://alert-sink:9095/alerts",
+  "alertRouting": true,
+  "result": "CONFIGURED_NOT_LIVE",
+  "reason": "Alertmanager routes grouped alerts to the local sink. Docker engine was not running so no live page was delivered."
+}

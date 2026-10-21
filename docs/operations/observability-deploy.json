@@ -1,0 +1,8 @@
+{
+  "executedAt": "2026-10-21T09:51:00.000Z",
+  "stack": ["otel-collector", "prometheus", "alertmanager", "grafana", "alert-sink"],
+  "composeFile": "docker-compose.yml",
+  "alertRouting": "http://alert-sink:9095/alerts",
+  "result": "NOT_DEPLOYED",
+  "reason": "Docker Desktop engine returned HTTP 500 for /info. Compose configuration, Prometheus scrape jobs, Grafana dashboard, and alert routing webhook are in ops/observability/."
+}

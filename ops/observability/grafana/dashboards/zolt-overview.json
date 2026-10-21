@@ -1,0 +1,44 @@
+{
+  "id": null,
+  "title": "Zolt platform overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "API scrape",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "up{job=\"zolt-api\"}", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Gateway scrape",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "up{job=\"zolt-gateway\"}", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP request rate",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(zolt_http_requests_total[1m])) by (service)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP duration (p95)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(zolt_http_request_duration_ms_bucket[5m])) by (le, service))",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

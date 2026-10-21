@@ -11,7 +11,12 @@ function client(): Redis | null {
     limiterRedis = null;
     return limiterRedis;
   }
-  limiterRedis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null });
+  limiterRedis = new Redis(process.env.REDIS_URL, {
+    maxRetriesPerRequest: 1,
+    connectTimeout: 750,
+    enableOfflineQueue: false,
+    lazyConnect: true,
+  });
   return limiterRedis;
 }
 
@@ -26,16 +31,21 @@ export async function enforceRateLimit(
 ): Promise<boolean> {
   const redis = client();
   if (redis) {
-    const redisKey = `zolt:rl:${key}`;
-    const count = await redis.incr(redisKey);
-    if (count === 1) {
-      await redis.pexpire(redisKey, windowMs);
+    try {
+      if (redis.status === "wait") await redis.connect();
+      const redisKey = `zolt:rl:${key}`;
+      const count = await redis.incr(redisKey);
+      if (count === 1) {
+        await redis.pexpire(redisKey, windowMs);
+      }
+      if (count > limit) {
+        await reply.code(429).send({ code: "RATE_LIMITED" });
+        return false;
+      }
+      return true;
+    } catch {
+      limiterRedis = null;
     }
-    if (count > limit) {
-      await reply.code(429).send({ code: "RATE_LIMITED" });
-      return false;
-    }
-    return true;
   }
 
   const now = Date.now();

@@ -22,6 +22,12 @@ Do not commit `.env` files. CI scans for private keys and common token patterns.
 
 Replay keys are single-use for 10 minutes. Signing timestamps older than 5 minutes are rejected.
 
+## Production deployment
+
+Local and pilot deployments use `tsx scripts/managed-secrets.ts` (`pnpm secrets:rotate`). Secrets are wrapped with AES-256-GCM under `ZOLT_MASTER_KEY` and written to `ops/secrets/store.json` (gitignored). When `AWS_SECRET_ID`, `GCP_SECRET_NAME`, or `AZURE_KEY_VAULT_URL` is set, the same rotator records that managed backend instead of implying env-file storage.
+
+Evidence: `docs/operations/managed-secrets.json`.
+
 ## Pilot credential rotation completion checklist
 
 - [ ] Export active credentials for every pilot tenant

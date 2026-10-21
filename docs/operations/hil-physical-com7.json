@@ -1,0 +1,12 @@
+{
+  "executedAt": "2026-10-21T09:50:30.000Z",
+  "port": "COM7",
+  "physicalRs485": true,
+  "openedPort": true,
+  "modbusResponse": false,
+  "readOnlyFunctionCode": 3,
+  "plantControlEnabled": false,
+  "result": "FAIL",
+  "error": "Serial Read timed out. COM7 is present but did not answer Modbus RTU function 03 at 9600 8E1.",
+  "note": "No named GridFlex inverter was found on this adapter. High-fidelity emulator HIL passed separately."
+}

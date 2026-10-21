@@ -1,0 +1,39 @@
+groups:
+  - name: zolt-platform
+    rules:
+      - alert: ZoltApiDown
+        expr: up{job="zolt-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: zolt-api
+        annotations:
+          summary: Zolt API scrape is down
+          description: Prometheus cannot scrape host.docker.internal:4000/metrics.
+
+      - alert: ZoltGatewayDown
+        expr: up{job="zolt-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: zolt-gateway
+        annotations:
+          summary: Zolt connector gateway scrape is down
+
+      - alert: ZoltHighErrorRate
+        expr: rate(zolt_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: zolt-api
+        annotations:
+          summary: Elevated Zolt error rate
+
+      - alert: ZoltHighLatency
+        expr: histogram_quantile(0.95, rate(zolt_http_request_duration_ms_bucket[5m])) > 500
+        for: 5m
+        labels:
+          severity: warning
+          service: zolt-api
+        annotations:
+          summary: API P95 latency above 500ms

@@ -1,0 +1,17 @@
+{
+  "pilotId": "gridflex-controlled-pilot-2026-10",
+  "startedAt": "2026-10-21T09:19:30.473Z",
+  "mode": "controlled",
+  "advisoryOnly": true,
+  "hardwareExecution": false,
+  "plants": ["pilot-plant-a", "pilot-plant-b"],
+  "ingest": "local GridFlex gateway harness + emulator HIL",
+  "dataset": "docs/operations/datasets/pilot-emulator-90d-v1.jsonl",
+  "models": [
+    "docs/operations/models/forecast-v1.json",
+    "docs/operations/models/anomaly-v1.json",
+    "docs/operations/models/optimisation-validation.json"
+  ],
+  "realNamedPlantConnected": false,
+  "operator": "local campaign runner"
+}

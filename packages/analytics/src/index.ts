@@ -216,3 +216,5 @@ export function solarForecastWithConfidence(input: {
     baselineKw,
   };
 }
+
+export * from "./train.js";

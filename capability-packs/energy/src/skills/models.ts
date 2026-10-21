@@ -2,11 +2,13 @@ import type { ZoltSkill } from "@zolt/capability-sdk";
 import {
   curtailmentForecastKw,
   inverterHealthScore,
+  predictForecastKw,
   revenueLoss,
   solarForecastWithConfidence,
+  type TrainedForecastModel,
   zScores,
 } from "@zolt/analytics";
-import { optimiseSite } from "@zolt/optimisation";
+import { optimiseHorizon, optimiseSite } from "@zolt/optimisation";
 import { calibrateConfidence } from "@zolt/core";
 
 function series(
@@ -59,7 +61,10 @@ export const productionForecastSkill: ZoltSkill = {
         context.configuration.cloudFactor ??
         0.2,
     );
-    const forecast = solarForecastWithConfidence({
+    const trained = context.configuration.trainedForecast as
+      | TrainedForecastModel
+      | undefined;
+    const baseline = solarForecastWithConfidence({
       capacityKw: capacity,
       hourUtc: hour,
       cloudCover: cloud,
@@ -74,8 +79,20 @@ export const productionForecastSkill: ZoltSkill = {
       historicalErrorStdKw:
         context.configuration.historicalErrorStdKw === undefined
           ? undefined
-          : Number(context.configuration.historicalErrorStdKw),
+          : trained?.residualStdKw,
     });
+    const forecast = trained
+      ? {
+          ...baseline,
+          forecastKw: predictForecastKw(trained, {
+            hourUtc: hour,
+            capacityKw: capacity,
+            cloudCover: cloud,
+            irradianceWm2: Number(context.configuration.irradianceWm2 ?? 800),
+            temperatureC: Number(context.configuration.temperatureC ?? 25),
+          }),
+        }
+      : baseline;
     const live = series(context, "powerKw")[0] ?? 0;
     const breakdown = { model: 0.78, capacity: 0.9, weather: 1 - cloud };
     return {
@@ -204,17 +221,51 @@ export const revenueLossModelSkill: ZoltSkill = {
     }
     const tariff = Number(context.configuration.tariff ?? 1.2);
     const loss = revenueLoss(curtailed, tariff);
-    const plan = optimiseSite({
-      forecastKw: forecast,
-      exportLimitKw: limit,
-      loadKw: Number(context.configuration.loadKw ?? 0),
-      batterySocPct: Number(context.configuration.batterySocPct ?? 50),
-      batteryPowerKw: Number(context.configuration.batteryPowerKw ?? 50),
-      hydrogenCapacityKgPerHour: Number(
-        context.configuration.hydrogenCapacityKgPerHour ?? 0,
-      ),
-      tariff,
-    });
+    const plan = Array.isArray(context.configuration.horizon)
+      ? optimiseHorizon(
+          {
+            batteryPowerKw: Number(context.configuration.batteryPowerKw ?? 50),
+            batteryCapacityKwh: Number(
+              context.configuration.batteryCapacityKwh ?? 120,
+            ),
+            hydrogenCapacityKgPerHour: Number(
+              context.configuration.hydrogenCapacityKgPerHour ?? 0,
+            ),
+            flexibleLoadLimitKw: Number(
+              context.configuration.flexibleLoadLimitKw ?? 10,
+            ),
+          },
+          Number(context.configuration.batterySocPct ?? 50),
+          context.configuration.horizon as Array<{
+            hourUtc: number;
+            forecastKw: number;
+            loadKw: number;
+            exportLimitKw: number;
+            tariff: number;
+          }>,
+        ).steps[0]?.plan ??
+        optimiseSite({
+          forecastKw: forecast,
+          exportLimitKw: limit,
+          loadKw: Number(context.configuration.loadKw ?? 0),
+          batterySocPct: Number(context.configuration.batterySocPct ?? 50),
+          batteryPowerKw: Number(context.configuration.batteryPowerKw ?? 50),
+          hydrogenCapacityKgPerHour: Number(
+            context.configuration.hydrogenCapacityKgPerHour ?? 0,
+          ),
+          tariff,
+        })
+      : optimiseSite({
+          forecastKw: forecast,
+          exportLimitKw: limit,
+          loadKw: Number(context.configuration.loadKw ?? 0),
+          batterySocPct: Number(context.configuration.batterySocPct ?? 50),
+          batteryPowerKw: Number(context.configuration.batteryPowerKw ?? 50),
+          hydrogenCapacityKgPerHour: Number(
+            context.configuration.hydrogenCapacityKgPerHour ?? 0,
+          ),
+          tariff,
+        });
     const scores = zScores(series(context, "powerKw").concat([forecast]));
     const breakdown = {
       curtailment: 0.85,

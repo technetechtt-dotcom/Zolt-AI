@@ -1,0 +1,32 @@
+{
+  "datasetId": "pilot-emulator-90d-v1",
+  "sourcePlantIds": [
+    "pilot-plant-a",
+    "pilot-plant-b"
+  ],
+  "source": "controlled-gridflex-pilot-emulator",
+  "realNamedPlant": false,
+  "includes": {
+    "telemetry": true,
+    "inverterFaults": true,
+    "curtailmentEvents": true,
+    "weather": true,
+    "operatorLabels": true
+  },
+  "splits": {
+    "train": 0.7,
+    "validation": 0.15,
+    "test": 0.15,
+    "splitStrategy": "time-based"
+  },
+  "leakageControls": [
+    "Time-ordered split with no overlapping timestamps",
+    "Least-squares coefficients fitted on the train window only",
+    "Residual standard deviation estimated from train residuals only"
+  ],
+  "rowCount": 4320,
+  "trainCount": 3024,
+  "validationCount": 648,
+  "testCount": 648,
+  "approvedBy": "zolt-ml@local"
+}

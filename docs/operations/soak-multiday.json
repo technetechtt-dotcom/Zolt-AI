@@ -1,0 +1,8 @@
+{
+  "generatedAt": "2026-10-21T09:51:00.000Z",
+  "inProgress": false,
+  "queuedAfter": "soak-24h",
+  "soakMinutes": 4320,
+  "tier": "10",
+  "note": "Multi-day soak is queued behind the 24-hour soak so both do not contend for the same gateway."
+}

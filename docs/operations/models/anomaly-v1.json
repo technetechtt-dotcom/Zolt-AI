@@ -1,0 +1,21 @@
+{
+  "name": "inverter-residual-zscore",
+  "version": "inverter-residual-zscore-v1",
+  "residualMean": -2.838079034391539,
+  "residualStd": 12.814297848777324,
+  "temperatureMean": 21.708683862433844,
+  "temperatureStd": 3.9724569817035857,
+  "threshold": 4.5,
+  "evaluation": {
+    "validation": {
+      "precision": 1,
+      "recall": 0.5714,
+      "f1": 0.7273
+    },
+    "test": {
+      "precision": 1,
+      "recall": 0.5,
+      "f1": 0.6667
+    }
+  }
+}

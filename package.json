@@ -39,8 +39,14 @@
     "test:pitr": "powershell -ExecutionPolicy Bypass -File scripts/verify-pitr.ps1",
     "test:chaos": "powershell -ExecutionPolicy Bypass -File scripts/chaos-test.ps1",
     "test:hil": "powershell -ExecutionPolicy Bypass -File scripts/hil-gridflex-rs485.ps1",
+    "test:hil:emulator": "tsx scripts/hil-emulator.ts",
     "evidence:verify": "tsx scripts/verify-readiness-evidence.ts",
-    "evidence:dataset": "tsx scripts/ml-dataset-audit.ts"
+    "evidence:dataset": "tsx scripts/ml-dataset-audit.ts",
+    "secrets:rotate": "tsx scripts/managed-secrets.ts",
+    "ml:train": "tsx scripts/train-energy-models.ts",
+    "security:assess": "tsx scripts/security-assessment.ts",
+    "campaign:execute": "tsx scripts/execute-campaign.ts",
+    "obs:up": "docker compose up -d"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

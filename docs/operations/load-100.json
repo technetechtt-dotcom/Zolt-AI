@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-10-21T09:20:24.186Z",
+  "target": "http://localhost:4001/v1/ingest/gridflex",
+  "simulated": true,
+  "tier": "100",
+  "deviceCount": 100,
+  "messagesPerDevice": 100,
+  "soakMinutes": 0,
+  "reconnectEvery": 0,
+  "reconnectPauseMs": 500,
+  "reconnectBursts": 0,
+  "inProgress": false,
+  "messages": 10000,
+  "successful": 10000,
+  "failed": 0,
+  "durationMs": 8860.34,
+  "messagesPerSecond": 1128.63,
+  "latencyMs": {
+    "p50": 46.42,
+    "p95": 96.36,
+    "p99": 147.61
+  },
+  "statusCodes": {
+    "202": 10000
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "executedAt": "2026-10-21T09:52:00.000Z",
+  "advisoryOnly": true,
+  "hardwareExecution": false,
+  "steps": [
+    { "name": "hil-emulator", "result": "PASS" },
+    { "name": "physical-hil-com7", "result": "FAIL", "detail": "Port opened, Modbus function 03 timed out" },
+    { "name": "load-10", "result": "PASS" },
+    { "name": "load-100", "result": "PASS" },
+    { "name": "load-1000", "result": "PASS" },
+    { "name": "load-10000", "result": "PASS" },
+    { "name": "reconnect-burst", "result": "PASS" },
+    { "name": "soak-rehearsal", "result": "PASS" },
+    { "name": "soak-24h", "result": "STARTED" },
+    { "name": "soak-multiday", "result": "STARTED", "detail": "queued behind 24h" },
+    { "name": "chaos-redis", "result": "SKIPPED", "detail": "Docker engine HTTP 500" },
+    { "name": "chaos-postgres", "result": "SKIPPED", "detail": "Docker engine HTTP 500" },
+    { "name": "backup-restore", "result": "SKIPPED", "detail": "Docker engine HTTP 500" },
+    { "name": "pitr", "result": "SKIPPED", "detail": "Docker engine HTTP 500" },
+    { "name": "observability-compose", "result": "SKIPPED", "detail": "Docker engine HTTP 500" },
+    { "name": "managed-secrets-rotate", "result": "PASS" },
+    { "name": "security-assessment", "result": "PASS", "detail": "HMAC replay and signature checks against live gateway" },
+    { "name": "ml-train-validate", "result": "PASS" },
+    { "name": "optimisation-horizon", "result": "PASS" },
+    { "name": "controlled-pilot", "result": "PASS", "detail": "emulator-backed pilot, no named live plant" }
+  ]
+}

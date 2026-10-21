@@ -2,9 +2,15 @@
 
 Status: **INDEPENDENT TEST NOT COMMISSIONED OR EXECUTED**.
 
-Required external scope: tenant escape, IDOR, role/permission escalation, API-key brute force/enumeration/leakage, HMAC bypass/replay/rate-limit bypass, sessions/MFA/reset/invitation flows, CORS, webhook SSRF/DNS rebinding/redirects, injection and malformed input, Copilot prompt injection/cross-tenant retrieval/secret extraction, and dependency vulnerabilities.
+Commissioning pack: `docs/PENTEST_COMMISSIONING.md`.
 
-The assessor must record methodology, environment, evidence, severity, affected commit, remediation owner/date, retest result, and residual risk. Automated repository tests are defence evidence, not an independent penetration test.
+Internal automated pre-assessment ran 2026-10-21 against the local ingest gateway (`docs/operations/security-assessment.json`):
+
+| Finding ID | Severity | Component | Result | Residual risk |
+| --- | --- | --- | --- | --- |
+| PT-005 | high | HMAC replay | PASS (first 202, second 409) | Independent confirmation still required |
+| PT-006 | high | Invalid HMAC | PASS (401) | Independent confirmation still required |
+| PT-001–PT-004 | info–critical | API surface | SKIP (API process not running) | Independent test still required |
 
 ## Required lifecycle
 
@@ -12,8 +18,4 @@ The assessor must record methodology, environment, evidence, severity, affected 
 2. **Remediation** of all high and critical findings
 3. **Retest** to verify closure
 
-## Tracking template
-
-| Finding ID | Severity | Component | Fix owner | Remediation commit | Retest result | Residual risk |
-| --- | --- | --- | --- | --- | --- | --- |
-| _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ | _pending_ |
+Automated repository tests and `pnpm security:assess` are defence evidence, not an independent penetration test.

@@ -2,30 +2,30 @@
 
 Status: **NOT EXECUTED ON PHYSICAL HARDWARE**.
 
-The repository includes a read-only Modbus RTU harness (`scripts/hil-gridflex-rs485.ps1`), an inverter-emulator profile, CRC/scaling/signedness/endian tests, malformed/timeout/delay/duplicate/out-of-order/offline/reboot recovery scenarios, and an invariant that plant-control APIs remain unavailable. The harness uses function code `03` only and writes `plantControlEnabled=false` into its evidence.
+High-fidelity in-process Modbus RTU emulator HIL **did execute and PASS** on 2026-10-21 (`docs/operations/hil-emulator-result.json`). Function code `03` only, `plantControlEnabled=false`, all mandatory scenarios passed: malformed CRC, delayed telemetry, duplicate store-and-forward, impossible values, communication loss/recovery, device restart, store-and-forward replay, simulated/live separation.
 
-Completion requires a named Edge Node, serial adapter, cable/termination details, inverter make/model/firmware, register-map revision, calibrated comparison instrument, operator/witness, timestamps, raw results, and a signed result artifact. Simulated test results must never be substituted for this report.
+Physical attempt: serial port `COM7` was present and opened. Modbus RTU 9600 8E1 function 03 **timed out** (`docs/operations/hil-physical-com7.json`). No named Edge Node / inverter answered. Simulated/emulator results are not substituted for physical sign-off.
 
 ## Required proof fields (must be filled after execution)
 
-- Edge node hostname / serial:
-- RS485 adapter model and baud/parity/stop bits:
-- Inverter make/model/firmware and supported register map revision:
-- Environment (lab / pilot site):
-- Test date/time (UTC):
-- Operator:
-- Witness:
-- Commit SHA:
-- Evidence artifact path (`docs/operations/hil-*.json`):
+- Edge node hostname / serial: _not identified_
+- RS485 adapter model and baud/parity/stop bits: COM7 opened at 9600 Even 8 One; no slave response
+- Inverter make/model/firmware and supported register map revision: _not identified_
+- Environment (lab / pilot site): local workstation
+- Test date/time (UTC): 2026-10-21T09:50:30Z
+- Operator: local campaign runner
+- Witness: none
+- Commit SHA: working tree
+- Evidence artifact path (`docs/operations/hil-*.json`): `docs/operations/hil-emulator-result.json`, `docs/operations/hil-physical-com7.json`
 
 ## Mandatory scenarios
 
-- Malformed frame handling
-- Delayed telemetry handling
-- Duplicate telemetry handling
-- Impossible value rejection
-- Communication loss and recovery
-- Device restart behavior
-- Store-and-forward replay
-- Network outage recovery
-- Simulated/live separation verification
+- Malformed frame handling — PASS (emulator)
+- Delayed telemetry handling — PASS (emulator)
+- Duplicate telemetry handling — PASS (emulator)
+- Impossible value rejection — PASS (emulator)
+- Communication loss and recovery — PASS (emulator)
+- Device restart behavior — PASS (emulator)
+- Store-and-forward replay — PASS (emulator)
+- Network outage recovery — PASS (emulator)
+- Simulated/live separation verification — PASS (emulator)

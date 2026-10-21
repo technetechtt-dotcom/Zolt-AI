@@ -177,7 +177,10 @@ function replayRedisClient(): Redis | null {
     return replayRedis;
   }
   replayRedis = new Redis(process.env.REDIS_URL, {
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: 1,
+    connectTimeout: 750,
+    enableOfflineQueue: false,
+    lazyConnect: true,
   });
   return replayRedis;
 }
@@ -185,14 +188,19 @@ function replayRedisClient(): Redis | null {
 async function claimReplayKey(key: string): Promise<boolean> {
   const redis = replayRedisClient();
   if (redis) {
-    const result = await redis.set(
-      `zolt:replay:${key}`,
-      "1",
-      "PX",
-      10 * 60 * 1000,
-      "NX",
-    );
-    return result === "OK";
+    try {
+      if (redis.status === "wait") await redis.connect();
+      const result = await redis.set(
+        `zolt:replay:${key}`,
+        "1",
+        "PX",
+        10 * 60 * 1000,
+        "NX",
+      );
+      return result === "OK";
+    } catch {
+      replayRedis = null;
+    }
   }
   const now = Date.now();
   pruneReplayCache(now);

@@ -1,5 +1,5 @@
 param(
-  [string]$Container = "zolt-ai-postgres-1",
+  [string]$Container = "zolt-postgres",
   [string]$Database = "zolt",
   [string]$User = "zolt",
   [string]$Report = "docs/operations/backup-restore-result.json"

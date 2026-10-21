@@ -1,0 +1,51 @@
+{
+  "executedAt": "2026-10-21T09:50:51.872Z",
+  "kind": "automated-internal-preassessment",
+  "independentAssessor": false,
+  "findings": [
+    {
+      "id": "PT-001",
+      "severity": "info",
+      "title": "API live endpoint reachable",
+      "result": "SKIP",
+      "detail": "status=0"
+    },
+    {
+      "id": "PT-002",
+      "severity": "high",
+      "title": "Unauthenticated telemetry write is rejected",
+      "result": "SKIP",
+      "detail": "status=0 body=fetch failed"
+    },
+    {
+      "id": "PT-003",
+      "severity": "critical",
+      "title": "Cross-tenant recommendation read is rejected",
+      "result": "SKIP",
+      "detail": "status=0"
+    },
+    {
+      "id": "PT-004",
+      "severity": "critical",
+      "title": "Webhook SSRF to loopback is blocked",
+      "result": "SKIP",
+      "detail": "status=0 body=fetch failed"
+    },
+    {
+      "id": "PT-005",
+      "severity": "high",
+      "title": "HMAC replay is rejected on second use",
+      "result": "PASS",
+      "detail": "first=202 second=409"
+    },
+    {
+      "id": "PT-006",
+      "severity": "high",
+      "title": "Invalid HMAC signature is rejected",
+      "result": "PASS",
+      "detail": "status=401"
+    }
+  ],
+  "failed": [],
+  "result": "PASS"
+}

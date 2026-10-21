@@ -1,0 +1,62 @@
+{
+  "executedAt": "2026-10-21T09:19:31.692Z",
+  "dataset": "pilot-emulator-90d-v1",
+  "forecast": {
+    "name": "solar-clearsky-calibrated",
+    "version": "solar-clearsky-calibrated-v1",
+    "intercept": 0.8296611288267831,
+    "cloudCoefficient": 15.784589024395475,
+    "irradianceCoefficient": 14.93109698113347,
+    "temperatureCoefficient": 6.507988868302079,
+    "residualStdKw": 10.96522278537202,
+    "trainWindow": {
+      "start": "2026-07-01T00:00:00.000Z",
+      "end": "2026-09-01T23:00:00.000Z"
+    },
+    "evaluation": {
+      "validation": {
+        "mae": 5.2653,
+        "rmse": 11.1376,
+        "bias": 0.1309
+      },
+      "test": {
+        "mae": 4.6633,
+        "rmse": 9.2287,
+        "bias": -0.4768
+      }
+    },
+    "leakageControls": [
+      "Time-ordered split with no overlapping timestamps",
+      "Least-squares coefficients fitted on the train window only",
+      "Residual standard deviation estimated from train residuals only"
+    ]
+  },
+  "anomaly": {
+    "name": "inverter-residual-zscore",
+    "version": "inverter-residual-zscore-v1",
+    "residualMean": -2.838079034391539,
+    "residualStd": 12.814297848777324,
+    "temperatureMean": 21.708683862433844,
+    "temperatureStd": 3.9724569817035857,
+    "threshold": 4.5,
+    "evaluation": {
+      "validation": {
+        "precision": 1,
+        "recall": 0.5714,
+        "f1": 0.7273
+      },
+      "test": {
+        "precision": 1,
+        "recall": 0.5,
+        "f1": 0.6667
+      }
+    }
+  },
+  "optimisation": {
+    "recoveredEnergyKwh": 171.635,
+    "improvementVsGreedy": -24.288,
+    "constraintsSatisfied": true,
+    "advisoryOnly": true
+  },
+  "result": "PASS"
+}

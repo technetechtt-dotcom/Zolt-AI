@@ -1,0 +1,935 @@
+{
+  "greedy": {
+    "advisoryOnly": true,
+    "baselineCurtailmentKwh": 350.329,
+    "recoveredEnergyKwh": 171.635,
+    "estimatedRevenueImpact": 205.96,
+    "constraintsSatisfied": true,
+    "improvementVsGreedy": 0,
+    "steps": [
+      {
+        "hourUtc": 0,
+        "socPct": 45,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 35,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 42,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 27.5,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 1,
+        "socPct": 27.5,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 25,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 30,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 2,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 3,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 4,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 5,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 6,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 7,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 6.786,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": -0.679,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 18.393,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 8,
+        "socPct": 18.393,
+        "plan": {
+          "chargeKw": 35.096,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": -3.51,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 35.941,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 9,
+        "socPct": 35.941,
+        "plan": {
+          "chargeKw": 80,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": -8,
+          "baselineCurtailmentKw": 0.875,
+          "recoveredEnergyKwh": 0.875,
+          "estimatedRevenueImpact": 1.05,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 75.941,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 10,
+        "socPct": 75.941,
+        "plan": {
+          "chargeKw": 28.118,
+          "dischargeKw": 0,
+          "curtailedKw": 4.785,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.096,
+          "objective": -21.64,
+          "baselineCurtailmentKw": 57.903,
+          "recoveredEnergyKwh": 53.118,
+          "estimatedRevenueImpact": 63.74,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 11,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 39.31,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.786,
+          "objective": -46.448,
+          "baselineCurtailmentKw": 64.31,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 12,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 46.978,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.94,
+          "objective": -52.582,
+          "baselineCurtailmentKw": 71.978,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 13,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 47.704,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.954,
+          "objective": -53.163,
+          "baselineCurtailmentKw": 72.704,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 14,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 39.917,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.798,
+          "objective": -46.934,
+          "baselineCurtailmentKw": 64.917,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 15,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 17.642,
+          "hydrogenKg": 0,
+          "objective": -10.585,
+          "baselineCurtailmentKw": 17.642,
+          "recoveredEnergyKwh": 17.642,
+          "estimatedRevenueImpact": 21.17,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 16,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 17,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 18,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 80,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 192,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 50,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 19,
+        "socPct": 50,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 70,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 168,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 20,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 21,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 22,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 23,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      }
+    ]
+  },
+  "horizon": {
+    "advisoryOnly": true,
+    "baselineCurtailmentKwh": 350.329,
+    "recoveredEnergyKwh": 171.635,
+    "estimatedRevenueImpact": 205.96,
+    "constraintsSatisfied": true,
+    "improvementVsGreedy": -24.288,
+    "steps": [
+      {
+        "hourUtc": 0,
+        "socPct": 45,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 35,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 42,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 27.5,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 1,
+        "socPct": 27.5,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 25,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 30,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 2,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 3,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 4,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 5,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 6,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 7,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 6.786,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": -0.679,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 18.393,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 8,
+        "socPct": 18.393,
+        "plan": {
+          "chargeKw": 35.096,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": -3.51,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 35.941,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 9,
+        "socPct": 35.941,
+        "plan": {
+          "chargeKw": 80,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": -8,
+          "baselineCurtailmentKw": 0.875,
+          "recoveredEnergyKwh": 0.875,
+          "estimatedRevenueImpact": 1.05,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 75.941,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 10,
+        "socPct": 75.941,
+        "plan": {
+          "chargeKw": 28.118,
+          "dischargeKw": 0,
+          "curtailedKw": 4.785,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.096,
+          "objective": -21.64,
+          "baselineCurtailmentKw": 57.903,
+          "recoveredEnergyKwh": 53.118,
+          "estimatedRevenueImpact": 63.74,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 11,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 39.31,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.786,
+          "objective": -46.448,
+          "baselineCurtailmentKw": 64.31,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 12,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 46.978,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.94,
+          "objective": -52.582,
+          "baselineCurtailmentKw": 71.978,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 13,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 47.704,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.954,
+          "objective": -53.163,
+          "baselineCurtailmentKw": 72.704,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 14,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 39.917,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.798,
+          "objective": -46.934,
+          "baselineCurtailmentKw": 64.917,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 15,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 17.642,
+          "hydrogenKg": 0,
+          "objective": -10.585,
+          "baselineCurtailmentKw": 17.642,
+          "recoveredEnergyKwh": 17.642,
+          "estimatedRevenueImpact": 21.17,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 16,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 17,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 18,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 80,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 192,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 50,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 19,
+        "socPct": 50,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 70,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 168,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 20,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 21,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 22,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 23,
+        "socPct": 15,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": 0,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 15,
+        "constraintViolations": []
+      }
+    ]
+  },
+  "advisoryOnly": true
+}
