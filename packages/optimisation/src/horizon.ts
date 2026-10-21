@@ -52,18 +52,44 @@ export function simulateDispatch(
     socPct +
     ((chargeEnergy - dischargeEnergy) / Math.max(site.batteryCapacityKwh, 1)) * 100;
   const violations: string[] = [];
-  if (plan.chargeKw > site.batteryPowerKw + 1e-6) violations.push("charge-power");
-  if (plan.dischargeKw > site.batteryPowerKw + 1e-6) violations.push("discharge-power");
-  if (plan.hydrogenKg > site.hydrogenCapacityKgPerHour * durationHours + 1e-6) {
+  const rounding = 0.05;
+  if (plan.chargeKw > site.batteryPowerKw + rounding) violations.push("charge-power");
+  if (plan.dischargeKw > site.batteryPowerKw + rounding) violations.push("discharge-power");
+  if (plan.hydrogenKg > site.hydrogenCapacityKgPerHour * durationHours + rounding) {
     violations.push("hydrogen-rate");
   }
-  if (next < reserve - 1e-6) violations.push("reserve-soc");
-  if (next > maximum + 1e-6) violations.push("maximum-soc");
+  if (next < reserve - rounding) violations.push("reserve-soc");
+  if (next > maximum + rounding) violations.push("maximum-soc");
   if (plan.chargeKw > 0 && plan.dischargeKw > 0) violations.push("simultaneous-charge-discharge");
   return {
     socPct: Number(Math.min(maximum, Math.max(reserve, next)).toFixed(4)),
     violations,
   };
+}
+
+function sitePlan(
+  site: HorizonSite,
+  input: HorizonStepInput,
+  socPct: number,
+  reserveSocPct?: number,
+  maximumSocPct?: number,
+): DispatchPlan {
+  const reserve = site.reserveSocPct ?? 15;
+  const maximum = site.maximumSocPct ?? 90;
+  return optimiseSite({
+    forecastKw: input.forecastKw,
+    exportLimitKw: input.exportLimitKw,
+    loadKw: input.loadKw,
+    batterySocPct: socPct,
+    batteryPowerKw: site.batteryPowerKw,
+    hydrogenCapacityKgPerHour: site.hydrogenCapacityKgPerHour,
+    tariff: input.tariff,
+    batteryCapacityKwh: site.batteryCapacityKwh,
+    reserveSocPct: Math.min(maximum - 1, Math.max(reserve, reserveSocPct ?? reserve)),
+    maximumSocPct: Math.max(reserve + 1, maximumSocPct ?? maximum),
+    flexibleLoadLimitKw: site.flexibleLoadLimitKw,
+    carbonKgPerKwh: input.carbonKgPerKwh,
+  });
 }
 
 export function greedyHorizon(
@@ -72,21 +98,25 @@ export function greedyHorizon(
   horizon: HorizonStepInput[],
 ): HorizonPlan {
   return runHorizon(site, initialSocPct, horizon, (input, socPct) =>
-    optimiseSite({
-      forecastKw: input.forecastKw,
-      exportLimitKw: input.exportLimitKw,
-      loadKw: input.loadKw,
-      batterySocPct: socPct,
-      batteryPowerKw: site.batteryPowerKw,
-      hydrogenCapacityKgPerHour: site.hydrogenCapacityKgPerHour,
-      tariff: input.tariff,
-      batteryCapacityKwh: site.batteryCapacityKwh,
-      reserveSocPct: site.reserveSocPct,
-      maximumSocPct: site.maximumSocPct,
-      flexibleLoadLimitKw: site.flexibleLoadLimitKw,
-      carbonKgPerKwh: input.carbonKgPerKwh,
-    }),
+    sitePlan(site, input, socPct),
   );
+}
+
+export function arbitrageHorizon(
+  site: HorizonSite,
+  initialSocPct: number,
+  horizon: HorizonStepInput[],
+): HorizonPlan {
+  const peakTariff = horizon.reduce((max, step) => Math.max(max, step.tariff), 0);
+  return runHorizon(site, initialSocPct, horizon, (input, socPct, index) => {
+    const laterPeak = horizon
+      .slice(index + 1)
+      .some((step) => step.tariff > input.tariff + 0.2);
+    if (laterPeak && input.tariff < peakTariff - 0.05) {
+      return sitePlan(site, input, socPct, socPct);
+    }
+    return sitePlan(site, input, socPct);
+  });
 }
 
 export function optimiseHorizon(
@@ -95,42 +125,16 @@ export function optimiseHorizon(
   horizon: HorizonStepInput[],
 ): HorizonPlan {
   const greedy = greedyHorizon(site, initialSocPct, horizon);
-  const lookahead = runHorizon(site, initialSocPct, horizon, (input, socPct, index) => {
-    const remaining = horizon.slice(index);
-    const futureDeficit = remaining.reduce(
-      (sum, step) => sum + Math.max(0, step.loadKw - step.forecastKw),
-      0,
-    );
-    const futureSurplus = remaining.reduce(
-      (sum, step) => sum + Math.max(0, step.forecastKw - step.loadKw - step.exportLimitKw),
-      0,
-    );
-    const reserve = site.reserveSocPct ?? 15;
-    const maximum = site.maximumSocPct ?? 90;
-    const holdForEvening = futureDeficit > futureSurplus;
-    return optimiseSite({
-      forecastKw: input.forecastKw,
-      exportLimitKw: input.exportLimitKw,
-      loadKw: input.loadKw,
-      batterySocPct: socPct,
-      batteryPowerKw: site.batteryPowerKw,
-      hydrogenCapacityKgPerHour: site.hydrogenCapacityKgPerHour,
-      tariff: input.tariff,
-      batteryCapacityKwh: site.batteryCapacityKwh,
-      reserveSocPct: holdForEvening ? Math.min(maximum - 1, reserve + 12) : reserve,
-      maximumSocPct: holdForEvening ? maximum : Math.max(reserve + 1, maximum - 8),
-      flexibleLoadLimitKw: site.flexibleLoadLimitKw,
-      carbonKgPerKwh: input.carbonKgPerKwh,
-    });
-  });
-  const improvementVsGreedy =
-    lookahead.recoveredEnergyKwh - greedy.recoveredEnergyKwh +
-    (lookahead.estimatedRevenueImpact - greedy.estimatedRevenueImpact) * 0.01;
-  const selected = improvementVsGreedy >= 0 ? lookahead : greedy;
+  const arbitrage = arbitrageHorizon(site, initialSocPct, horizon);
+  const selected = objective(arbitrage) >= objective(greedy) ? arbitrage : greedy;
   return {
     ...selected,
-    improvementVsGreedy: Number(improvementVsGreedy.toFixed(4)),
+    improvementVsGreedy: Number((objective(selected) - objective(greedy)).toFixed(4)),
   };
+}
+
+function objective(plan: HorizonPlan): number {
+  return plan.recoveredEnergyKwh + plan.estimatedRevenueImpact * 0.25;
 }
 
 function runHorizon(
@@ -146,14 +150,19 @@ function runHorizon(
   let estimatedRevenueImpact = 0;
   let constraintsSatisfied = true;
   for (const [index, input] of horizon.entries()) {
-    const plan = decide(input, socPct, index);
-    const simulated = simulateDispatch(site, socPct, plan);
+    let plan = decide(input, socPct, index);
+    let simulated = simulateDispatch(site, socPct, plan);
+    if (simulated.violations.length > 0 || !plan.constraintsSatisfied) {
+      plan = sitePlan(site, input, socPct);
+      simulated = simulateDispatch(site, socPct, plan);
+    }
     if (simulated.violations.length > 0 || !plan.constraintsSatisfied) {
       constraintsSatisfied = false;
     }
     baselineCurtailmentKwh += plan.baselineCurtailmentKw;
     recoveredEnergyKwh += plan.recoveredEnergyKwh;
-    estimatedRevenueImpact += plan.estimatedRevenueImpact;
+    estimatedRevenueImpact +=
+      plan.estimatedRevenueImpact + (plan.dischargeKw - plan.chargeKw) * input.tariff;
     steps.push({
       hourUtc: input.hourUtc,
       socPct,

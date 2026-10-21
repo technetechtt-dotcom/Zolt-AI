@@ -72,16 +72,13 @@ promoteChampion(anomaly.name, anomaly.version, {
   approvalOwner: "zolt-ml",
 });
 
-const day = Array.from({ length: 24 }, (_, hourUtc) => {
-  const sample = dataset.find((row) => row.plantId === "pilot-plant-a" && row.hourUtc === hourUtc);
-  return {
-    hourUtc,
-    forecastKw: sample?.expectedPowerKw ?? 0,
-    loadKw: 30 + (hourUtc >= 18 ? 50 : 5),
-    exportLimitKw: 90,
-    tariff: hourUtc >= 17 && hourUtc <= 20 ? 2.4 : 1.2,
-  };
-});
+const day = Array.from({ length: 24 }, (_, hourUtc) => ({
+  hourUtc,
+  forecastKw: hourUtc >= 7 && hourUtc <= 14 ? 150 : 5,
+  loadKw: hourUtc >= 15 ? 80 : 30,
+  exportLimitKw: 90,
+  tariff: hourUtc >= 18 && hourUtc <= 21 ? 2.4 : 1.0,
+}));
 const site = {
   batteryPowerKw: 80,
   batteryCapacityKwh: 200,

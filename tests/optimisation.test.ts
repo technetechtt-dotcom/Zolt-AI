@@ -49,10 +49,10 @@ describe("operational optimisation", () => {
   it("validates a 24-hour horizon against SOC constraints", () => {
     const horizon = Array.from({ length: 24 }, (_, hourUtc) => ({
       hourUtc,
-      forecastKw: Math.max(0, 180 * Math.sin(((hourUtc - 6) / 12) * Math.PI)),
-      loadKw: hourUtc >= 17 ? 90 : 35,
+      forecastKw: hourUtc >= 7 && hourUtc <= 14 ? 160 : 8,
+      loadKw: hourUtc >= 15 ? 90 : 35,
       exportLimitKw: 100,
-      tariff: hourUtc >= 17 ? 2.2 : 1.1,
+      tariff: hourUtc >= 18 && hourUtc <= 21 ? 2.4 : 1.0,
     }));
     const greedy = greedyHorizon(site, 40, horizon);
     const plan = optimiseHorizon(site, 40, horizon);
@@ -63,5 +63,11 @@ describe("operational optimisation", () => {
     expect(plan.steps.every((step) => step.simulatedSocPct >= 15)).toBe(true);
     expect(plan.steps.every((step) => step.simulatedSocPct <= 90)).toBe(true);
     expect(greedy.advisoryOnly).toBe(true);
+    expect(plan.improvementVsGreedy).toBeGreaterThan(0);
+    expect(
+      plan.recoveredEnergyKwh + plan.estimatedRevenueImpact * 0.25,
+    ).toBeGreaterThan(
+      greedy.recoveredEnergyKwh + greedy.estimatedRevenueImpact * 0.25,
+    );
   });
 });

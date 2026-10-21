@@ -13,4 +13,4 @@ Status: **LOAD TIERS RE-EXECUTED** after the 1,000-device P95 fix. Default concu
 
 The previous 1,000-device P95 of 597 ms was caused by concurrency 150 saturating a single-thread gateway. Re-run used concurrency 32 and met the 500 ms budget.
 
-24-hour soak is still in progress (`docs/operations/soak-24h.json`). A supervisor (`pnpm soak:supervise`) starts the multi-day soak only after the 24-hour run records `inProgress: false` at 1440 minutes. Chaos Redis/Postgres was not executed: Docker Engine remains HTTP 500.
+24-hour soak is still in progress on `localhost:4001` (`docs/operations/soak-24h.json`, 0 failures, checkpointing). A supervisor (`pnpm soak:supervise`) starts the multi-day soak only after the 24-hour run records `inProgress: false` at 1440 minutes. Chaos Redis/Postgres was not executed: `com.docker.service` is Stopped and cannot be started without elevation.

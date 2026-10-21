@@ -22,9 +22,33 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
   Start-Sleep -Seconds 2
 }
 $finished = Get-Date
-$result = [ordered]@{ executedAt=$finished.ToUniversalTime().ToString("o"); target=$Target; outageSeconds=$OutageSeconds; recovered=$ready; recoverySeconds=[Math]::Round(($finished-$started).TotalSeconds-$OutageSeconds,2) }
+$entry = [ordered]@{
+  executedAt = $finished.ToUniversalTime().ToString("o")
+  target = $Target
+  outageSeconds = $OutageSeconds
+  recovered = $ready
+  recoverySeconds = [Math]::Round(($finished - $started).TotalSeconds - $OutageSeconds, 2)
+}
+$runs = @()
+if (Test-Path -LiteralPath $Report) {
+  try {
+    $previous = Get-Content -LiteralPath $Report -Raw | ConvertFrom-Json
+    if ($previous.runs) {
+      $runs = @($previous.runs | Where-Object { $_.target -and $_.recovered -ne $null })
+    } elseif ($previous.target -and $previous.result -ne "NOT_EXECUTED") {
+      $runs = @($previous)
+    }
+  } catch {}
+}
+$runs = @($runs | Where-Object { $_.target -ne $Target }) + $entry
+$allRecovered = -not ($runs | Where-Object { -not $_.recovered })
+$result = [ordered]@{
+  executedAt = $entry.executedAt
+  result = $(if ($allRecovered) { "PASS" } else { "FAIL" })
+  runs = $runs
+}
 $directory = Split-Path -Parent $Report
 if ($directory) { New-Item -ItemType Directory -Force -Path $directory | Out-Null }
-$result | ConvertTo-Json | Set-Content -LiteralPath $Report -Encoding utf8
-$result | ConvertTo-Json
+$result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Report -Encoding utf8
+$result | ConvertTo-Json -Depth 6
 if (-not $ready) { exit 1 }

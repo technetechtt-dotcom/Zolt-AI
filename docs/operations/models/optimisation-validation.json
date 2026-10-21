@@ -1,9 +1,9 @@
 {
   "greedy": {
     "advisoryOnly": true,
-    "baselineCurtailmentKwh": 350.329,
-    "recoveredEnergyKwh": 171.635,
-    "estimatedRevenueImpact": 205.96,
+    "baselineCurtailmentKwh": 240,
+    "recoveredEnergyKwh": 210,
+    "estimatedRevenueImpact": 270,
     "constraintsSatisfied": true,
     "improvementVsGreedy": 0,
     "steps": [
@@ -12,49 +12,49 @@
         "socPct": 45,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 35,
+          "dischargeKw": 25,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 42,
+          "objective": 25,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 27.5,
+        "simulatedSocPct": 32.5,
         "constraintViolations": []
       },
       {
         "hourUtc": 1,
-        "socPct": 27.5,
+        "socPct": 32.5,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 25,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 30,
+          "objective": 25,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 15,
+        "simulatedSocPct": 20,
         "constraintViolations": []
       },
       {
         "hourUtc": 2,
-        "socPct": 15,
+        "socPct": 20,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 0,
+          "dischargeKw": 10,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 0,
+          "objective": 10,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
@@ -144,72 +144,72 @@
         "hourUtc": 7,
         "socPct": 15,
         "plan": {
-          "chargeKw": 6.786,
-          "dischargeKw": 0,
-          "curtailedKw": 0,
-          "flexibleLoadKw": 0,
-          "hydrogenKg": 0,
-          "objective": -0.679,
-          "baselineCurtailmentKw": 0,
-          "recoveredEnergyKwh": 0,
-          "estimatedRevenueImpact": 0,
-          "constraintsSatisfied": true,
-          "advisoryOnly": true
-        },
-        "simulatedSocPct": 18.393,
-        "constraintViolations": []
-      },
-      {
-        "hourUtc": 8,
-        "socPct": 18.393,
-        "plan": {
-          "chargeKw": 35.096,
-          "dischargeKw": 0,
-          "curtailedKw": 0,
-          "flexibleLoadKw": 0,
-          "hydrogenKg": 0,
-          "objective": -3.51,
-          "baselineCurtailmentKw": 0,
-          "recoveredEnergyKwh": 0,
-          "estimatedRevenueImpact": 0,
-          "constraintsSatisfied": true,
-          "advisoryOnly": true
-        },
-        "simulatedSocPct": 35.941,
-        "constraintViolations": []
-      },
-      {
-        "hourUtc": 9,
-        "socPct": 35.941,
-        "plan": {
           "chargeKw": 80,
           "dischargeKw": 0,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
           "objective": -8,
-          "baselineCurtailmentKw": 0.875,
-          "recoveredEnergyKwh": 0.875,
-          "estimatedRevenueImpact": 1.05,
+          "baselineCurtailmentKw": 30,
+          "recoveredEnergyKwh": 30,
+          "estimatedRevenueImpact": 30,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 75.941,
+        "simulatedSocPct": 55,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 8,
+        "socPct": 55,
+        "plan": {
+          "chargeKw": 70,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 0,
+          "hydrogenKg": 0,
+          "objective": -7,
+          "baselineCurtailmentKw": 30,
+          "recoveredEnergyKwh": 30,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 9,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 5,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 25,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
         "constraintViolations": []
       },
       {
         "hourUtc": 10,
-        "socPct": 75.941,
+        "socPct": 90,
         "plan": {
-          "chargeKw": 28.118,
+          "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 4.785,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.096,
-          "objective": -21.64,
-          "baselineCurtailmentKw": 57.903,
-          "recoveredEnergyKwh": 53.118,
-          "estimatedRevenueImpact": 63.74,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -222,13 +222,13 @@
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 39.31,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.786,
-          "objective": -46.448,
-          "baselineCurtailmentKw": 64.31,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
           "recoveredEnergyKwh": 25,
-          "estimatedRevenueImpact": 30,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -241,13 +241,13 @@
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 46.978,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.94,
-          "objective": -52.582,
-          "baselineCurtailmentKw": 71.978,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
           "recoveredEnergyKwh": 25,
-          "estimatedRevenueImpact": 30,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -260,13 +260,13 @@
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 47.704,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.954,
-          "objective": -53.163,
-          "baselineCurtailmentKw": 72.704,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
           "recoveredEnergyKwh": 25,
-          "estimatedRevenueImpact": 30,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -279,13 +279,13 @@
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 39.917,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.798,
-          "objective": -46.934,
-          "baselineCurtailmentKw": 64.917,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
           "recoveredEnergyKwh": 25,
-          "estimatedRevenueImpact": 30,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -297,42 +297,42 @@
         "socPct": 90,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 0,
+          "dischargeKw": 75,
           "curtailedKw": 0,
-          "flexibleLoadKw": 17.642,
+          "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": -10.585,
-          "baselineCurtailmentKw": 17.642,
-          "recoveredEnergyKwh": 17.642,
-          "estimatedRevenueImpact": 21.17,
+          "objective": 75,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 90,
+        "simulatedSocPct": 52.5,
         "constraintViolations": []
       },
       {
         "hourUtc": 16,
-        "socPct": 90,
+        "socPct": 52.5,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 0,
+          "dischargeKw": 75,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 0,
+          "objective": 75,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 90,
+        "simulatedSocPct": 15,
         "constraintViolations": []
       },
       {
         "hourUtc": 17,
-        "socPct": 90,
+        "socPct": 15,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
@@ -346,38 +346,38 @@
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 90,
+        "simulatedSocPct": 15,
         "constraintViolations": []
       },
       {
         "hourUtc": 18,
-        "socPct": 90,
+        "socPct": 15,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 80,
+          "dischargeKw": 0,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 192,
+          "objective": 0,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 50,
+        "simulatedSocPct": 15,
         "constraintViolations": []
       },
       {
         "hourUtc": 19,
-        "socPct": 50,
+        "socPct": 15,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 70,
+          "dischargeKw": 0,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 168,
+          "objective": 0,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
@@ -467,53 +467,53 @@
   },
   "horizon": {
     "advisoryOnly": true,
-    "baselineCurtailmentKwh": 350.329,
-    "recoveredEnergyKwh": 171.635,
-    "estimatedRevenueImpact": 205.96,
+    "baselineCurtailmentKwh": 240,
+    "recoveredEnergyKwh": 210,
+    "estimatedRevenueImpact": 477.2,
     "constraintsSatisfied": true,
-    "improvementVsGreedy": -24.288,
+    "improvementVsGreedy": 51.8,
     "steps": [
       {
         "hourUtc": 0,
         "socPct": 45,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 35,
+          "dischargeKw": 0,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 42,
+          "objective": 0,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 27.5,
+        "simulatedSocPct": 45,
         "constraintViolations": []
       },
       {
         "hourUtc": 1,
-        "socPct": 27.5,
+        "socPct": 45,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 25,
+          "dischargeKw": 0,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 30,
+          "objective": 0,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 15,
+        "simulatedSocPct": 45,
         "constraintViolations": []
       },
       {
         "hourUtc": 2,
-        "socPct": 15,
+        "socPct": 45,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
@@ -527,12 +527,12 @@
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 15,
+        "simulatedSocPct": 45,
         "constraintViolations": []
       },
       {
         "hourUtc": 3,
-        "socPct": 15,
+        "socPct": 45,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
@@ -546,12 +546,12 @@
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 15,
+        "simulatedSocPct": 45,
         "constraintViolations": []
       },
       {
         "hourUtc": 4,
-        "socPct": 15,
+        "socPct": 45,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
@@ -565,12 +565,12 @@
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 15,
+        "simulatedSocPct": 45,
         "constraintViolations": []
       },
       {
         "hourUtc": 5,
-        "socPct": 15,
+        "socPct": 45,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
@@ -584,12 +584,12 @@
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 15,
+        "simulatedSocPct": 45,
         "constraintViolations": []
       },
       {
         "hourUtc": 6,
-        "socPct": 15,
+        "socPct": 45,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
@@ -603,50 +603,12 @@
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 15,
+        "simulatedSocPct": 45,
         "constraintViolations": []
       },
       {
         "hourUtc": 7,
-        "socPct": 15,
-        "plan": {
-          "chargeKw": 6.786,
-          "dischargeKw": 0,
-          "curtailedKw": 0,
-          "flexibleLoadKw": 0,
-          "hydrogenKg": 0,
-          "objective": -0.679,
-          "baselineCurtailmentKw": 0,
-          "recoveredEnergyKwh": 0,
-          "estimatedRevenueImpact": 0,
-          "constraintsSatisfied": true,
-          "advisoryOnly": true
-        },
-        "simulatedSocPct": 18.393,
-        "constraintViolations": []
-      },
-      {
-        "hourUtc": 8,
-        "socPct": 18.393,
-        "plan": {
-          "chargeKw": 35.096,
-          "dischargeKw": 0,
-          "curtailedKw": 0,
-          "flexibleLoadKw": 0,
-          "hydrogenKg": 0,
-          "objective": -3.51,
-          "baselineCurtailmentKw": 0,
-          "recoveredEnergyKwh": 0,
-          "estimatedRevenueImpact": 0,
-          "constraintsSatisfied": true,
-          "advisoryOnly": true
-        },
-        "simulatedSocPct": 35.941,
-        "constraintViolations": []
-      },
-      {
-        "hourUtc": 9,
-        "socPct": 35.941,
+        "socPct": 45,
         "plan": {
           "chargeKw": 80,
           "dischargeKw": 0,
@@ -654,28 +616,66 @@
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
           "objective": -8,
-          "baselineCurtailmentKw": 0.875,
-          "recoveredEnergyKwh": 0.875,
-          "estimatedRevenueImpact": 1.05,
+          "baselineCurtailmentKw": 30,
+          "recoveredEnergyKwh": 30,
+          "estimatedRevenueImpact": 30,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 75.941,
+        "simulatedSocPct": 85,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 8,
+        "socPct": 85,
+        "plan": {
+          "chargeKw": 10,
+          "dischargeKw": 0,
+          "curtailedKw": 0,
+          "flexibleLoadKw": 20,
+          "hydrogenKg": 0,
+          "objective": -11,
+          "baselineCurtailmentKw": 30,
+          "recoveredEnergyKwh": 30,
+          "estimatedRevenueImpact": 30,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
+        "constraintViolations": []
+      },
+      {
+        "hourUtc": 9,
+        "socPct": 90,
+        "plan": {
+          "chargeKw": 0,
+          "dischargeKw": 0,
+          "curtailedKw": 5,
+          "flexibleLoadKw": 25,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 25,
+          "constraintsSatisfied": true,
+          "advisoryOnly": true
+        },
+        "simulatedSocPct": 90,
         "constraintViolations": []
       },
       {
         "hourUtc": 10,
-        "socPct": 75.941,
+        "socPct": 90,
         "plan": {
-          "chargeKw": 28.118,
+          "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 4.785,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.096,
-          "objective": -21.64,
-          "baselineCurtailmentKw": 57.903,
-          "recoveredEnergyKwh": 53.118,
-          "estimatedRevenueImpact": 63.74,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
+          "recoveredEnergyKwh": 25,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -688,13 +688,13 @@
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 39.31,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.786,
-          "objective": -46.448,
-          "baselineCurtailmentKw": 64.31,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
           "recoveredEnergyKwh": 25,
-          "estimatedRevenueImpact": 30,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -707,13 +707,13 @@
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 46.978,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.94,
-          "objective": -52.582,
-          "baselineCurtailmentKw": 71.978,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
           "recoveredEnergyKwh": 25,
-          "estimatedRevenueImpact": 30,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -726,13 +726,13 @@
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 47.704,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.954,
-          "objective": -53.163,
-          "baselineCurtailmentKw": 72.704,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
           "recoveredEnergyKwh": 25,
-          "estimatedRevenueImpact": 30,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -745,13 +745,13 @@
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
-          "curtailedKw": 39.917,
+          "curtailedKw": 5,
           "flexibleLoadKw": 25,
-          "hydrogenKg": 0.798,
-          "objective": -46.934,
-          "baselineCurtailmentKw": 64.917,
+          "hydrogenKg": 0.1,
+          "objective": -15.5,
+          "baselineCurtailmentKw": 30,
           "recoveredEnergyKwh": 25,
-          "estimatedRevenueImpact": 30,
+          "estimatedRevenueImpact": 25,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
@@ -763,23 +763,23 @@
         "socPct": 90,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 0,
+          "dischargeKw": 2,
           "curtailedKw": 0,
-          "flexibleLoadKw": 17.642,
+          "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": -10.585,
-          "baselineCurtailmentKw": 17.642,
-          "recoveredEnergyKwh": 17.642,
-          "estimatedRevenueImpact": 21.17,
+          "objective": 2,
+          "baselineCurtailmentKw": 0,
+          "recoveredEnergyKwh": 0,
+          "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 90,
+        "simulatedSocPct": 89,
         "constraintViolations": []
       },
       {
         "hourUtc": 16,
-        "socPct": 90,
+        "socPct": 89,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
@@ -793,12 +793,12 @@
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 90,
+        "simulatedSocPct": 89,
         "constraintViolations": []
       },
       {
         "hourUtc": 17,
-        "socPct": 90,
+        "socPct": 89,
         "plan": {
           "chargeKw": 0,
           "dischargeKw": 0,
@@ -812,38 +812,38 @@
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 90,
+        "simulatedSocPct": 89,
         "constraintViolations": []
       },
       {
         "hourUtc": 18,
-        "socPct": 90,
+        "socPct": 89,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 80,
+          "dischargeKw": 75,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 192,
+          "objective": 180,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,
           "constraintsSatisfied": true,
           "advisoryOnly": true
         },
-        "simulatedSocPct": 50,
+        "simulatedSocPct": 51.5,
         "constraintViolations": []
       },
       {
         "hourUtc": 19,
-        "socPct": 50,
+        "socPct": 51.5,
         "plan": {
           "chargeKw": 0,
-          "dischargeKw": 70,
+          "dischargeKw": 73,
           "curtailedKw": 0,
           "flexibleLoadKw": 0,
           "hydrogenKg": 0,
-          "objective": 168,
+          "objective": 175.2,
           "baselineCurtailmentKw": 0,
           "recoveredEnergyKwh": 0,
           "estimatedRevenueImpact": 0,

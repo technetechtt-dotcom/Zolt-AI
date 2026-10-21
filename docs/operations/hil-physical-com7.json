@@ -1,13 +1,84 @@
-{
-  "executedAt": "2026-10-21T10:13:04.000Z",
-  "port": "COM7",
-  "physicalRs485": true,
-  "openedPort": true,
-  "modbusResponse": false,
-  "readOnlyFunctionCode": 3,
-  "plantControlEnabled": false,
-  "namedInverter": null,
-  "edgeNode": null,
-  "result": "FAIL",
-  "error": "COM7 opened; Modbus RTU function 03 timed out at 9600 8E1. No GridFlex Edge Node or named inverter answered."
+﻿{
+    "executedAt":  "2026-10-21T12:12:43.7245418Z",
+    "physicalRs485":  true,
+    "plantControlEnabled":  false,
+    "readOnlyFunctionCode":  3,
+    "namedInverter":  null,
+    "edgeNode":  null,
+    "pnpPorts":  [
+                     {
+                         "Status":  "Unknown",
+                         "FriendlyName":  "USB Serial Device (COM4)"
+                     },
+                     {
+                         "Status":  "Unknown",
+                         "FriendlyName":  "Arduino Uno (COM6)"
+                     },
+                     {
+                         "Status":  "Unknown",
+                         "FriendlyName":  "Arduino Uno (COM5)"
+                     },
+                     {
+                         "Status":  "Unknown",
+                         "FriendlyName":  "HUAWEI Mobile Connect - PC UI Interface (COM11)"
+                     },
+                     {
+                         "Status":  "Unknown",
+                         "FriendlyName":  "HUAWEI Mobile Connect - PC UI Interface (COM10)"
+                     },
+                     {
+                         "Status":  "Unknown",
+                         "FriendlyName":  "HUAWEI Mobile Connect - PC UI Interface (COM7)"
+                     },
+                     {
+                         "Status":  "Unknown",
+                         "FriendlyName":  "HUAWEI Mobile Connect - USB Device (COM9)"
+                     }
+                 ],
+    "portProbes":  [
+                       {
+                           "port":  "COM4",
+                           "opened":  false,
+                           "namedInverter":  null,
+                           "error":  "Exception calling \"Open\" with \"0\" argument(s): \"The port \u0027COM4\u0027 does not exist.\""
+                       },
+                       {
+                           "port":  "COM5",
+                           "opened":  false,
+                           "namedInverter":  null,
+                           "error":  "Exception calling \"Open\" with \"0\" argument(s): \"The port \u0027COM5\u0027 does not exist.\""
+                       },
+                       {
+                           "port":  "COM6",
+                           "opened":  false,
+                           "namedInverter":  null,
+                           "error":  "Exception calling \"Open\" with \"0\" argument(s): \"The port \u0027COM6\u0027 does not exist.\""
+                       },
+                       {
+                           "port":  "COM7",
+                           "opened":  false,
+                           "namedInverter":  null,
+                           "error":  "Exception calling \"Open\" with \"0\" argument(s): \"The port \u0027COM7\u0027 does not exist.\""
+                       },
+                       {
+                           "port":  "COM9",
+                           "opened":  false,
+                           "namedInverter":  null,
+                           "error":  "Exception calling \"Open\" with \"0\" argument(s): \"The port \u0027COM9\u0027 does not exist.\""
+                       },
+                       {
+                           "port":  "COM10",
+                           "opened":  false,
+                           "namedInverter":  null,
+                           "error":  "Exception calling \"Open\" with \"0\" argument(s): \"The port \u0027COM10\u0027 does not exist.\""
+                       },
+                       {
+                           "port":  "COM11",
+                           "opened":  false,
+                           "namedInverter":  null,
+                           "error":  "Exception calling \"Open\" with \"0\" argument(s): \"The port \u0027COM11\u0027 does not exist.\""
+                       }
+                   ],
+    "result":  "FAIL",
+    "error":  "No GridFlex Edge Node or named inverter present. COM7 is HUAWEI Mobile Connect. Remaining ports are Arduino/Huawei/USB serial in Unknown state."
 }

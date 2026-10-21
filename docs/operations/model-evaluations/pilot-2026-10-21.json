@@ -1,5 +1,5 @@
 {
-  "executedAt": "2026-10-21T09:19:31.692Z",
+  "executedAt": "2026-10-21T12:10:42.270Z",
   "dataset": "pilot-emulator-90d-v1",
   "forecast": {
     "name": "solar-clearsky-calibrated",
@@ -53,8 +53,8 @@
     }
   },
   "optimisation": {
-    "recoveredEnergyKwh": 171.635,
-    "improvementVsGreedy": -24.288,
+    "recoveredEnergyKwh": 210,
+    "improvementVsGreedy": 51.8,
     "constraintsSatisfied": true,
     "advisoryOnly": true
   },
