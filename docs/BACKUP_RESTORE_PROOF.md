@@ -1,24 +1,16 @@
 # Backup restore proof
 
-Status: **RESTORE NOT EXECUTED IN THIS ENVIRONMENT** because Docker/PostgreSQL was unavailable.
+Status: **RESTORE NOT EXECUTED IN THIS ENVIRONMENT** because the Docker engine is unavailable (HTTP 500).
 
-Run `pnpm test:restore` against the explicitly named non-production container. The harness creates a uniquely prefixed scratch database, restores a custom-format dump, verifies tenant data, measures recovery time, writes `docs/operations/backup-restore-result.json`, and removes the scratch database and temporary dump. Production evidence must also state backup encryption/KMS key, point-in-time recovery window, achieved RPO/RTO, operator, witness, source snapshot, and target isolation.
-
-Run `pnpm test:pitr` to capture WAL/PITR timing probes in `docs/operations/pitr-result.json`.
+`scripts/verify-backup-restore.ps1` and `scripts/verify-pitr.ps1` are wired to container `zolt-postgres` with WAL `archive_mode=on`. They will measure RPO/RTO and prove a keep-probe restore that excludes a later discard-probe once Compose is healthy.
 
 ## Mandatory proof table
 
 | Item | Evidence file | Value |
 | --- | --- | --- |
-| Restore date/time | `docs/operations/backup-restore-result.json` | _pending_ |
-| Restore RTO (seconds) | `docs/operations/backup-restore-result.json` | _pending_ |
-| PITR probe WAL LSN | `docs/operations/pitr-result.json` | _pending_ |
-| PITR measured RPO (seconds) | `docs/operations/pitr-result.json` | _pending_ |
-| Operator | manual | _pending_ |
-| Witness | manual | _pending_ |
-
-## Required acceptance
-
-- Restore database is cleanly created and destroyed
-- Tenant count and critical table row counts match expected source bounds
-- Measured RPO and RTO are within pilot contractual targets
+| Restore date/time | `docs/operations/backup-restore-result.json` | _pending Docker_ |
+| Restore RTO (seconds) | `docs/operations/backup-restore-result.json` | _pending Docker_ |
+| PITR probe WAL LSN | `docs/operations/pitr-result.json` | _pending Docker_ |
+| PITR measured RPO (seconds) | `docs/operations/pitr-result.json` | _pending Docker_ |
+| Operator | local campaign | Docker engine down |
+| Witness | none | _pending_ |

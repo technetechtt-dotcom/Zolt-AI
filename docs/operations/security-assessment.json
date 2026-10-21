@@ -1,35 +1,37 @@
 {
-  "executedAt": "2026-10-21T09:50:51.872Z",
+  "executedAt": "2026-10-21T10:12:52.958Z",
   "kind": "automated-internal-preassessment",
   "independentAssessor": false,
+  "apiBaseUrl": "http://127.0.0.1:4000",
+  "gatewayUrl": "http://127.0.0.1:4001/v1/ingest/gridflex",
   "findings": [
     {
       "id": "PT-001",
       "severity": "info",
       "title": "API live endpoint reachable",
-      "result": "SKIP",
-      "detail": "status=0"
+      "result": "PASS",
+      "detail": "status=200 body={\"status\":\"ok\",\"service\":\"zolt-api\",\"advisoryOnly\":true,\"hardwareExecution\":false}"
     },
     {
       "id": "PT-002",
       "severity": "high",
       "title": "Unauthenticated telemetry write is rejected",
-      "result": "SKIP",
-      "detail": "status=0 body=fetch failed"
+      "result": "PASS",
+      "detail": "status=401 body={\"code\":\"UNAUTHORIZED\"}"
     },
     {
       "id": "PT-003",
       "severity": "critical",
       "title": "Cross-tenant recommendation read is rejected",
-      "result": "SKIP",
-      "detail": "status=0"
+      "result": "PASS",
+      "detail": "status=403 body={\"code\":\"TENANT_MISMATCH\"}"
     },
     {
       "id": "PT-004",
       "severity": "critical",
       "title": "Webhook SSRF to loopback is blocked",
-      "result": "SKIP",
-      "detail": "status=0 body=fetch failed"
+      "result": "PASS",
+      "detail": "status=400 body={\"code\":\"WEBHOOK_URL_PORT_FORBIDDEN\"}"
     },
     {
       "id": "PT-005",
@@ -47,5 +49,6 @@
     }
   ],
   "failed": [],
+  "skippedHighOrCritical": [],
   "result": "PASS"
 }

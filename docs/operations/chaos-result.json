@@ -1,0 +1,5 @@
+{
+  "executedAt": "2026-10-21T10:38:00.000Z",
+  "result": "NOT_EXECUTED",
+  "reason": "Docker Desktop engine returned HTTP 500 for /info after restart and WSL shutdown. com.docker.service could not be started without elevated rights. Redis/Postgres chaos requires a running Compose engine."
+}

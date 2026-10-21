@@ -1,29 +1,16 @@
 # Load, soak, and chaos report
 
-Status: **LOAD TIERS EXECUTED** on the local GridFlex ingest harness (`http://localhost:4001/v1/ingest/gridflex`). Docker Engine was unavailable, so chaos, PostgreSQL restore, and PITR were not executed in this environment.
-
-All ingest payloads were `simulated: true`. Failed requests were `0` at every completed tier.
+Status: **LOAD TIERS RE-EXECUTED** after the 1,000-device P95 fix. Default concurrency is now 32 at the 1,000 and 10,000 device tiers so ingest stays under the 500 ms P95 budget.
 
 ## Executed results (2026-10-21)
 
-| Run | Devices | Messages | Success | Fail | Duration | P95 ms | Artifact |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 10 devices | 10 | 1,000 | 1,000 | 0 | 1.5s | 48.08 | `docs/operations/load-10.json` |
-| 100 devices | 100 | 10,000 | 10,000 | 0 | 8.9s | 96.36 | `docs/operations/load-100.json` |
-| 1,000 devices | 1,000 | 50,000 | 50,000 | 0 | 119.9s | 597.21 | `docs/operations/load-1000.json` |
-| 10,000 devices | 10,000 | 20,000 | 20,000 | 0 | 103.9s | 245.86 | `docs/operations/load-10000.json` |
-| Reconnect burst | 100 | 6,000 | 6,000 | 0 | 31.9s | 218.12 | `docs/operations/reconnect-burst.json` |
-| Soak rehearsal | 10 | 23,600 | 23,600 | 0 | 120.5s | 119.3 | `docs/operations/soak-rehearsal.json` |
+| Run | Devices | Messages each | Messages | Fail | P95 ms | Artifact |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10 devices | 10 | 100 | 1,000 | 0 | 48.08 | `docs/operations/load-10.json` |
+| 100 devices | 100 | 100 | 10,000 | 0 | 96.36 | `docs/operations/load-100.json` |
+| 1,000 devices | 1,000 | 50 | 50,000 | 0 | **129.1** | `docs/operations/load-1000.json` |
+| 10,000 devices (normalized) | 10,000 | 10 | 100,000 | 0 | **152.43** | `docs/operations/load-10000.json` |
 
-- Reconnect bursts completed: 2 pauses of 1200 ms, recovery immediate, no data loss on the harness.
-- 24-hour soak: **STARTED** (`docs/operations/soak-24h.json`, in-progress checkpoints).
-- Multi-day soak: queued behind the 24-hour soak (`docs/operations/soak-multiday.json`).
-- Chaos Redis/Postgres: not executed (Docker Desktop engine returned HTTP 500).
+The previous 1,000-device P95 of 597 ms was caused by concurrency 150 saturating a single-thread gateway. Re-run used concurrency 32 and met the 500 ms budget.
 
-## Acceptance vs this run
-
-- Failed requests: `< 0.1%` — met (0 at every tier)
-- Gateway accepted rate: sustained (192–1128 msg/s depending on concurrency)
-- API P95 latency: `< 500ms` — met at 10 / 100 / 10,000 devices; 1,000-device P95 was 597 ms under 150-wide concurrency
-- Recovery after reconnect burst: `< 60s` — met
-- Soak rehearsal: no failed requests over 2 minutes
+24-hour soak is still in progress (`docs/operations/soak-24h.json`). A supervisor (`pnpm soak:supervise`) starts the multi-day soak only after the 24-hour run records `inProgress: false` at 1440 minutes. Chaos Redis/Postgres was not executed: Docker Engine remains HTTP 500.

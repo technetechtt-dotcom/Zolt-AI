@@ -2,6 +2,8 @@
 
 Status: **INDEPENDENT TEST NOT COMMISSIONED OR EXECUTED**.
 
+`pnpm pentest:commission` wrote `docs/operations/pentest-commission.json` (`NOT_COMMISSIONED`). An external firm cannot be engaged from this environment. Set `ZOLT_PENTEST_VENDOR`, `ZOLT_PENTEST_ENGAGEMENT_ID`, and `ZOLT_PENTEST_START_DATE` after the SOW is signed.
+
 Commissioning pack: `docs/PENTEST_COMMISSIONING.md`.
 
 Internal automated pre-assessment ran 2026-10-21 against the local ingest gateway (`docs/operations/security-assessment.json`):

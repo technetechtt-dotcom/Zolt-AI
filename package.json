@@ -45,8 +45,12 @@
     "secrets:rotate": "tsx scripts/managed-secrets.ts",
     "ml:train": "tsx scripts/train-energy-models.ts",
     "security:assess": "tsx scripts/security-assessment.ts",
+    "security:api": "tsx scripts/security-harness-api.ts",
     "campaign:execute": "tsx scripts/execute-campaign.ts",
-    "obs:up": "docker compose up -d"
+    "obs:up": "docker compose up -d",
+    "soak:supervise": "tsx scripts/soak-supervisor.ts",
+    "ml:benchmark": "tsx scripts/benchmark-models.ts",
+    "pentest:commission": "tsx scripts/commission-pentest.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-21T09:22:30.330Z",
-  "target": "http://localhost:4001/v1/ingest/gridflex",
+  "generatedAt": "2026-10-21T10:17:11.779Z",
+  "target": "http://127.0.0.1:4003/v1/ingest/gridflex",
   "simulated": true,
   "tier": "1000",
   "deviceCount": 1000,
@@ -13,13 +13,14 @@
   "messages": 50000,
   "successful": 50000,
   "failed": 0,
-  "durationMs": 119872.13,
-  "messagesPerSecond": 417.11,
+  "durationMs": 137060.41,
+  "messagesPerSecond": 364.8,
   "latencyMs": {
-    "p50": 344.84,
-    "p95": 597.21,
-    "p99": 681.08
+    "p50": 84.48,
+    "p95": 129.1,
+    "p99": 152.39
   },
+  "p95BudgetMs": 500,
   "statusCodes": {
     "202": 50000
   }

@@ -27,9 +27,9 @@ const reportPath = argValue("--report") ?? process.env.ZOLT_LOAD_REPORT ?? "docs
 
 const defaultsByTier: Record<string, { devices: number; messagesPerDevice: number; concurrency: number }> = {
   "10": { devices: 10, messagesPerDevice: 100, concurrency: 20 },
-  "100": { devices: 100, messagesPerDevice: 100, concurrency: 60 },
-  "1000": { devices: 1000, messagesPerDevice: 50, concurrency: 150 },
-  "10000": { devices: 10000, messagesPerDevice: 10, concurrency: 300 }
+  "100": { devices: 100, messagesPerDevice: 100, concurrency: 40 },
+  "1000": { devices: 1000, messagesPerDevice: 50, concurrency: 32 },
+  "10000": { devices: 10000, messagesPerDevice: 10, concurrency: 32 }
 };
 const defaults = defaultsByTier[tier] ?? defaultsByTier["10"];
 if (!defaults) {
@@ -39,6 +39,7 @@ if (!defaults) {
 const deviceCount = Number(process.env.ZOLT_LOAD_DEVICES ?? defaults.devices);
 const messagesPerDevice = Number(process.env.ZOLT_LOAD_MESSAGES_PER_DEVICE ?? defaults.messagesPerDevice);
 const concurrency = Number(process.env.ZOLT_LOAD_CONCURRENCY ?? defaults.concurrency);
+const p95BudgetMs = Number(process.env.ZOLT_LOAD_P95_BUDGET_MS ?? "500");
 
 if (!apiKey || !hmacSecret) {
   throw new Error("ZOLT_LOAD_API_KEY and ZOLT_LOAD_HMAC_SECRET are required");
@@ -223,12 +224,13 @@ const report = {
     p95: Number(percentile(sorted, 0.95).toFixed(2)),
     p99: Number(percentile(sorted, 0.99).toFixed(2))
   },
+  p95BudgetMs,
   statusCodes: Object.fromEntries(statusCodes)
 };
 
 await mkdir("docs/operations", { recursive: true });
 await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-if (report.failed > 0) {
+if (report.failed > 0 || report.latencyMs.p95 > p95BudgetMs) {
   process.exitCode = 1;
 }

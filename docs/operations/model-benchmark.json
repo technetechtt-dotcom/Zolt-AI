@@ -1,0 +1,8 @@
+{
+  "executedAt": "2026-10-21T10:13:06.028Z",
+  "result": "FAIL",
+  "reason": "REAL_GRIDFLEX_DATASET_UNAVAILABLE",
+  "source": "docs/operations/datasets/pilot-emulator-90d-v1.jsonl",
+  "rowCount": 4320,
+  "realNamedPlant": false
+}

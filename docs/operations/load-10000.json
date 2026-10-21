@@ -1,26 +1,27 @@
 {
-  "generatedAt": "2026-10-21T09:47:30.519Z",
-  "target": "http://localhost:4001/v1/ingest/gridflex",
+  "generatedAt": "2026-10-21T10:37:28.716Z",
+  "target": "http://127.0.0.1:4003/v1/ingest/gridflex",
   "simulated": true,
   "tier": "10000",
   "deviceCount": 10000,
-  "messagesPerDevice": 2,
+  "messagesPerDevice": 10,
   "soakMinutes": 0,
   "reconnectEvery": 0,
   "reconnectPauseMs": 500,
   "reconnectBursts": 0,
   "inProgress": false,
-  "messages": 20000,
-  "successful": 20000,
+  "messages": 100000,
+  "successful": 100000,
   "failed": 0,
-  "durationMs": 103854.46,
-  "messagesPerSecond": 192.58,
+  "durationMs": 664520.31,
+  "messagesPerSecond": 150.48,
   "latencyMs": {
-    "p50": 201.16,
-    "p95": 245.86,
-    "p99": 309.77
+    "p50": 91.89,
+    "p95": 152.43,
+    "p99": 202.3
   },
+  "p95BudgetMs": 500,
   "statusCodes": {
-    "202": 20000
+    "202": 100000
   }
 }

@@ -6,12 +6,32 @@ const gateway = process.env.ZOLT_LOAD_URL ?? "http://localhost:4001/v1/ingest/gr
 const apiKey = process.env.ZOLT_API_KEY ?? "dev-api-key-change-me";
 const hmac = process.env.ZOLT_INGEST_HMAC_SECRET ?? "dev-hmac-secret-change-me";
 
-interface Finding {
+export interface Finding {
   id: string;
   severity: "info" | "low" | "medium" | "high" | "critical";
   title: string;
   result: "PASS" | "FAIL" | "SKIP";
   detail: string;
+}
+
+export function scoreFindings(findings: Finding[]): {
+  failed: string[];
+  skippedHighOrCritical: string[];
+  result: "PASS" | "FAIL";
+} {
+  const failed = findings.filter((item) => item.result === "FAIL").map((item) => item.id);
+  const skippedHighOrCritical = findings
+    .filter(
+      (item) =>
+        item.result === "SKIP" &&
+        (item.severity === "high" || item.severity === "critical"),
+    )
+    .map((item) => item.id);
+  return {
+    failed,
+    skippedHighOrCritical,
+    result: failed.length === 0 && skippedHighOrCritical.length === 0 ? "PASS" : "FAIL",
+  };
 }
 
 async function probe(url: string, init?: RequestInit): Promise<{ status: number; body: string }> {
@@ -23,15 +43,19 @@ async function probe(url: string, init?: RequestInit): Promise<{ status: number;
   }
 }
 
-async function run(): Promise<Finding[]> {
+function reachable(status: number): boolean {
+  return status > 0;
+}
+
+export async function runSecurityAssessment(): Promise<Finding[]> {
   const findings: Finding[] = [];
   const live = await probe(`${api}/health/live`);
   findings.push({
     id: "PT-001",
     severity: "info",
     title: "API live endpoint reachable",
-    result: live.status === 200 ? "PASS" : "SKIP",
-    detail: `status=${live.status}`,
+    result: live.status === 200 ? "PASS" : "FAIL",
+    detail: `status=${live.status} body=${live.body.slice(0, 120)}`,
   });
 
   const noKey = await probe(`${api}/v1/telemetry`, {
@@ -43,19 +67,33 @@ async function run(): Promise<Finding[]> {
     id: "PT-002",
     severity: "high",
     title: "Unauthenticated telemetry write is rejected",
-    result: noKey.status === 401 || noKey.status === 503 ? "PASS" : noKey.status === 0 ? "SKIP" : "FAIL",
+    result: !reachable(noKey.status)
+      ? "SKIP"
+      : noKey.status === 401 || noKey.status === 503
+        ? "PASS"
+        : "FAIL",
     detail: `status=${noKey.status} body=${noKey.body.slice(0, 180)}`,
   });
 
-  const tenantEscape = await probe(`${api}/v1/recommendations`, {
-    headers: { "x-zolt-api-key": apiKey, "x-zolt-tenant-id": "not-the-caller-tenant" },
-  });
+  const tenantEscape = await probe(
+    `${api}/v1/recommendations?tenantId=not-the-caller-tenant`,
+    {
+      headers: {
+        "x-zolt-api-key": apiKey,
+        "x-zolt-tenant-id": "not-the-caller-tenant",
+      },
+    },
+  );
   findings.push({
     id: "PT-003",
     severity: "critical",
     title: "Cross-tenant recommendation read is rejected",
-    result: [401, 403, 400].includes(tenantEscape.status) || tenantEscape.status === 0 ? (tenantEscape.status === 0 ? "SKIP" : "PASS") : "FAIL",
-    detail: `status=${tenantEscape.status}`,
+    result: !reachable(tenantEscape.status)
+      ? "SKIP"
+      : [401, 403, 400].includes(tenantEscape.status)
+        ? "PASS"
+        : "FAIL",
+    detail: `status=${tenantEscape.status} body=${tenantEscape.body.slice(0, 180)}`,
   });
 
   const ssrf = await probe(`${api}/v1/webhooks`, {
@@ -71,7 +109,7 @@ async function run(): Promise<Finding[]> {
     id: "PT-004",
     severity: "critical",
     title: "Webhook SSRF to loopback is blocked",
-    result: ssrf.status === 0 ? "SKIP" : ssrf.status >= 400 ? "PASS" : "FAIL",
+    result: !reachable(ssrf.status) ? "SKIP" : ssrf.status >= 400 ? "PASS" : "FAIL",
     detail: `status=${ssrf.status} body=${ssrf.body.slice(0, 180)}`,
   });
 
@@ -83,40 +121,30 @@ async function run(): Promise<Finding[]> {
     timestamp: new Date().toISOString(),
     readings: { powerKw: 1 },
   });
-  const signature = createHmac("sha256", hmac).update(`${timestamp}.${replayKey}.${body}`).digest("hex");
-  const first = await probe(gateway, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-zolt-api-key": apiKey,
-      "x-zolt-tenant-id": "tenant-demo",
-      "x-zolt-product-id": "product-demo",
-      "x-zolt-installation-id": "installation-demo",
-      "x-zolt-signature-ts": timestamp,
-      "x-zolt-replay-key": replayKey,
-      "x-zolt-signature": signature,
-    },
-    body,
-  });
-  const second = await probe(gateway, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-zolt-api-key": apiKey,
-      "x-zolt-tenant-id": "tenant-demo",
-      "x-zolt-product-id": "product-demo",
-      "x-zolt-installation-id": "installation-demo",
-      "x-zolt-signature-ts": timestamp,
-      "x-zolt-replay-key": replayKey,
-      "x-zolt-signature": signature,
-    },
-    body,
-  });
+  const signature = createHmac("sha256", hmac)
+    .update(`${timestamp}.${replayKey}.${body}`)
+    .digest("hex");
+  const ingestHeaders = {
+    "content-type": "application/json",
+    "x-zolt-api-key": apiKey,
+    "x-zolt-tenant-id": "tenant-demo",
+    "x-zolt-product-id": "product-demo",
+    "x-zolt-installation-id": "installation-demo",
+    "x-zolt-signature-ts": timestamp,
+    "x-zolt-replay-key": replayKey,
+    "x-zolt-signature": signature,
+  };
+  const first = await probe(gateway, { method: "POST", headers: ingestHeaders, body });
+  const second = await probe(gateway, { method: "POST", headers: ingestHeaders, body });
   findings.push({
     id: "PT-005",
     severity: "high",
     title: "HMAC replay is rejected on second use",
-    result: first.status === 0 ? "SKIP" : second.status === 409 || second.status === 401 || second.status === 400 ? "PASS" : "FAIL",
+    result: !reachable(first.status)
+      ? "SKIP"
+      : second.status === 409 || second.status === 401 || second.status === 400
+        ? "PASS"
+        : "FAIL",
     detail: `first=${first.status} second=${second.status}`,
   });
 
@@ -135,24 +163,34 @@ async function run(): Promise<Finding[]> {
     id: "PT-006",
     severity: "high",
     title: "Invalid HMAC signature is rejected",
-    result: bogusSig.status === 0 ? "SKIP" : bogusSig.status === 401 || bogusSig.status === 400 ? "PASS" : "FAIL",
+    result: !reachable(bogusSig.status)
+      ? "SKIP"
+      : bogusSig.status === 401 || bogusSig.status === 400
+        ? "PASS"
+        : "FAIL",
     detail: `status=${bogusSig.status}`,
   });
 
   return findings;
 }
 
-const findings = await run();
-const failed = findings.filter((item) => item.result === "FAIL");
-const report = {
-  executedAt: new Date().toISOString(),
-  kind: "automated-internal-preassessment",
-  independentAssessor: false,
-  findings,
-  failed: failed.map((item) => item.id),
-  result: failed.length === 0 ? "PASS" : "FAIL",
-};
-await mkdir("docs/operations", { recursive: true });
-await writeFile("docs/operations/security-assessment.json", `${JSON.stringify(report, null, 2)}\n`);
-process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-if (failed.length) process.exitCode = 1;
+if (process.argv[1]?.endsWith("security-assessment.ts")) {
+  const findings = await runSecurityAssessment();
+  const scored = scoreFindings(findings);
+  const report = {
+    executedAt: new Date().toISOString(),
+    kind: "automated-internal-preassessment",
+    independentAssessor: false,
+    apiBaseUrl: api,
+    gatewayUrl: gateway,
+    findings,
+    ...scored,
+  };
+  await mkdir("docs/operations", { recursive: true });
+  await writeFile(
+    "docs/operations/security-assessment.json",
+    `${JSON.stringify(report, null, 2)}\n`,
+  );
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  if (scored.result !== "PASS") process.exitCode = 1;
+}

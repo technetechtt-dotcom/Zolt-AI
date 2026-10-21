@@ -4,7 +4,7 @@ Status: **NOT EXECUTED ON PHYSICAL HARDWARE**.
 
 High-fidelity in-process Modbus RTU emulator HIL **did execute and PASS** on 2026-10-21 (`docs/operations/hil-emulator-result.json`). Function code `03` only, `plantControlEnabled=false`, all mandatory scenarios passed: malformed CRC, delayed telemetry, duplicate store-and-forward, impossible values, communication loss/recovery, device restart, store-and-forward replay, simulated/live separation.
 
-Physical attempt: serial port `COM7` was present and opened. Modbus RTU 9600 8E1 function 03 **timed out** (`docs/operations/hil-physical-com7.json`). No named Edge Node / inverter answered. Simulated/emulator results are not substituted for physical sign-off.
+Physical attempt (re-run 2026-10-21T10:13Z): serial port `COM7` was present and opened. Modbus RTU 9600 8E1 function 03 **timed out** (`docs/operations/hil-physical-com7.json`). No GridFlex Edge Node or named inverter answered. Simulated/emulator results are not substituted for physical sign-off.
 
 ## Required proof fields (must be filled after execution)
 
