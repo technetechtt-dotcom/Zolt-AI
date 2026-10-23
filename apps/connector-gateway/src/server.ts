@@ -204,7 +204,7 @@ export async function startGatewayServer(): Promise<void> {
     getValidationProfile: database.getTelemetryValidationProfile,
     readinessCheck: async () => {
       try {
-        await queue.telemetryQueue().waitUntilReady();
+        await queue.pingQueue();
         return true;
       } catch {
         return false;

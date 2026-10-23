@@ -91,6 +91,15 @@ export interface ApiDependencies {
     tenantId: string;
     userId: string;
     name: string;
+    email?: string;
+  } | null>;
+  getUserProfile?: (userId: string) => Promise<{
+    id: string;
+    email: string;
+    name: string;
+    mfaEnabled: boolean;
+    emailVerifiedAt?: Date | string | null;
+    lastLoginAt?: Date | string | null;
   } | null>;
   revokeSession?: (token: string) => Promise<void>;
   switchTenantSession?: (input: {
@@ -101,6 +110,7 @@ export interface ApiDependencies {
     tenantId: string;
     userId: string;
     name: string;
+    email?: string;
   }>;
   listUserTenants?: (input: {
     tenantId: string;
@@ -800,12 +810,22 @@ export function buildApiApp(
     },
   );
 
-  app.get("/v1/me", { preHandler: [requireApiKey] }, async (req) => ({
-    tenantId: req.zoltAuth?.tenantId,
-    userId: req.zoltAuth?.userId,
-    permissions: req.zoltAuth?.permissions ?? [],
-    actorType: req.zoltAuth?.actorType,
-  }));
+  app.get("/v1/me", { preHandler: [requireApiKey] }, async (req) => {
+    const profile = req.zoltAuth?.userId
+      ? await dependencies.getUserProfile?.(req.zoltAuth.userId)
+      : null;
+    return {
+      tenantId: req.zoltAuth?.tenantId,
+      userId: req.zoltAuth?.userId,
+      email: profile?.email ?? null,
+      name: profile?.name ?? null,
+      mfaEnabled: Boolean(profile?.mfaEnabled),
+      emailVerified: Boolean(profile?.emailVerifiedAt),
+      lastLoginAt: profile?.lastLoginAt ?? null,
+      permissions: req.zoltAuth?.permissions ?? [],
+      actorType: req.zoltAuth?.actorType,
+    };
+  });
 
   app.get(
     "/v1/me/tenants",
@@ -1663,10 +1683,14 @@ export async function startApiServer(): Promise<void> {
     writeAuditEvent: database.writeAuditEvent,
     readinessCheck: async () => {
       try {
-        await Promise.all([
-          database.prisma.$queryRaw`SELECT 1`,
-          queue.telemetryQueue().waitUntilReady(),
-        ]);
+        try {
+          await database.prisma.$queryRaw`SELECT 1`;
+        } catch {
+          await database.prisma.$disconnect();
+          await database.prisma.$connect();
+          await database.prisma.$queryRaw`SELECT 1`;
+        }
+        await queue.pingQueue();
         return true;
       } catch {
         return false;
@@ -1704,6 +1728,7 @@ export async function startApiServer(): Promise<void> {
     },
     createOrchestrator: () => new AnalysisOrchestrator(energySkills),
     authenticateUser: database.authenticateUser,
+    getUserProfile: database.getUserProfile,
     revokeSession: database.revokeSession,
     switchTenantSession: database.switchTenantSession,
     listUserTenants: database.listUserTenants,

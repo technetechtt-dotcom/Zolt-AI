@@ -1,5 +1,20 @@
-{
-  "executedAt": "2026-10-21T12:14:20.000Z",
-  "result": "NOT_EXECUTED",
-  "reason": "Docker Desktop engine remains down. Restarted Docker Desktop and WSL; com.docker.service is Stopped/Manual and cannot be opened without elevation (Start-Service: Cannot open com.docker.service). docker info timed out after 25s. Redis/Postgres chaos was not run."
+﻿{
+    "executedAt":  "2026-10-22T12:56:28.6695857Z",
+    "result":  "FAIL",
+    "runs":  [
+                 {
+                     "executedAt":  "2026-10-22T12:54:00.1050585Z",
+                     "target":  "redis",
+                     "outageSeconds":  15,
+                     "recovered":  false,
+                     "recoverySeconds":  122.36
+                 },
+                 {
+                     "executedAt":  "2026-10-22T12:56:28.6695857Z",
+                     "target":  "postgres",
+                     "outageSeconds":  15,
+                     "recovered":  false,
+                     "recoverySeconds":  131.11
+                 }
+             ]
 }

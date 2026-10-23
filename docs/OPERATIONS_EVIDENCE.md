@@ -16,17 +16,17 @@ This file tracks **external validation blockers** and what this campaign actuall
 | Reconnect burst testing | `pnpm test:reconnect-burst` | `docs/operations/reconnect-burst.json` | Executed, 2 bursts, 0 failures |
 | 24-hour soak | `pnpm test:soak:24h` | `docs/operations/soak-24h.json` | In progress on :4001, 0 failures, supervisor watching |
 | Multi-day soak | `pnpm test:soak:multiday` | `docs/operations/soak-multiday.json` | Queued; starts only after 1,440 minutes complete |
-| Production chaos test | `pnpm test:chaos -- -Target redis` and `pnpm test:chaos -- -Target postgres` | `docs/operations/chaos-result.json` | Not executed — `com.docker.service` Stopped, elevation required |
-| Clean backup restoration | `pnpm test:restore` | `docs/operations/backup-restore-result.json` | Not executed — Docker engine unavailable |
-| PITR validation | `pnpm test:pitr` | `docs/operations/pitr-result.json` | Not executed — Docker engine unavailable |
-| Measured RPO and RTO acceptance | consolidate from restore + PITR artifacts | `docs/BACKUP_RESTORE_PROOF.md` | Pending elevated Docker start |
+| Production chaos test | `pnpm test:chaos:redis` and `pnpm test:chaos:postgres` | `docs/operations/chaos-result.json` | Executed FAIL — Redis/Postgres restart; `/health/ready` did not return 200 within ~120 s |
+| Clean backup restoration | `pnpm test:restore` | `docs/operations/backup-restore-result.json` | PASS, 1 tenant, RTO 3.76 s |
+| PITR validation | `pnpm test:pitr` | `docs/operations/pitr-result.json` | PASS, keep-probe restored, discard excluded |
+| Measured RPO and RTO acceptance | consolidate from restore + PITR artifacts | `docs/BACKUP_RESTORE_PROOF.md` | RPO 4.69 s, RTO 5.59 s (PITR); restore RTO 3.76 s |
 | Independent penetration test | External assessor report | `docs/PENETRATION_TEST_REPORT.md` | Commissioning pack ready; not independently executed |
 | Pen-test remediation | Internal ticket closure list | `docs/PENETRATION_TEST_REPORT.md` remediation section | Pending independent test |
 | Pen-test retest | External assessor retest report | `docs/PENETRATION_TEST_REPORT.md` retest section | Pending |
 | Managed production secrets | Deployed secrets manager integration | `docs/SECRETS.md` / `docs/operations/managed-secrets.json` | Local AES-GCM store rotated |
 | Rotate all pilot credentials | API/UI rotation records + audit | `docs/operations/credential-rotation.json` | Local managed-secret rotation executed |
-| Deploy real observability backends | Prometheus/Grafana/OTel deployment evidence | `docs/operations/observability-deploy.json` | Compose configs ready; `com.docker.service` Stopped |
-| Deploy real alert routing | Pager/alert destination proof | `docs/operations/alert-routing.json` | Alertmanager → alert-sink wired in compose |
+| Deploy real observability backends | Prometheus/Grafana/OTel deployment evidence | `docs/operations/observability-deploy.json` | DEPLOYED_LOCAL (Prometheus :9096, Grafana :3002). Not a production cluster |
+| Deploy real alert routing | Pager/alert destination proof | `docs/operations/alert-routing.json` | Alertmanager live to local alert-sink; no PagerDuty/Slack |
 
 ## Automation gates
 

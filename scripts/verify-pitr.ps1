@@ -6,6 +6,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$dockerDir = Join-Path ${env:ProgramFiles} "Docker\Docker\resources\bin"
+if (Test-Path $dockerDir) { $env:Path = "$dockerDir;$env:Path" }
 $probeTable = "__zolt_pitr_probe"
 $keepId = [guid]::NewGuid().ToString()
 $discardId = [guid]::NewGuid().ToString()

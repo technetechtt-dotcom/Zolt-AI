@@ -5,13 +5,25 @@ param(
 )
 $ErrorActionPreference = "Stop"
 if ($OutageSeconds -lt 1 -or $OutageSeconds -gt 300) { throw "OutageSeconds must be between 1 and 300" }
-$service = $Target
+$dockerDir = Join-Path ${env:ProgramFiles} "Docker\Docker\resources\bin"
+if (Test-Path $dockerDir) { $env:Path = "$dockerDir;$env:Path" }
+$container = if ($Target -eq "redis") { "zolt-redis" } else { "zolt-postgres" }
 $started = Get-Date
-docker compose stop $service
+docker stop $container | Out-Null
 try {
   Start-Sleep -Seconds $OutageSeconds
 } finally {
-  docker compose start $service
+  docker start $container | Out-Null
+}
+for ($attempt = 0; $attempt -lt 30; $attempt++) {
+  if ($Target -eq "redis") {
+    $pong = docker exec $container redis-cli ping 2>$null
+    if (("$pong").Trim() -eq "PONG") { break }
+  } else {
+    $pg = docker exec $container pg_isready -U zolt -d zolt 2>$null
+    if ("$pg" -match "accepting") { break }
+  }
+  Start-Sleep -Seconds 2
 }
 $ready = $false
 for ($attempt = 0; $attempt -lt 30; $attempt++) {

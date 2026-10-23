@@ -1,0 +1,19 @@
+﻿{
+    "executedAt":  "2026-10-22T12:39:22.7555704Z",
+    "database":  "zolt",
+    "archiveMode":  "on",
+    "walArchiveFileCount":  4,
+    "keepProbeId":  "78eb1c81-1559-4481-8885-2046e2d47362",
+    "discardProbeId":  "f393c2e7-e255-4192-bb1a-d27971a83fd7",
+    "keepProbeLsn":  "0/3525688",
+    "recoveryTargetTime":  "2026-10-22 12:39:16.784079+00",
+    "keepPresentInRestore":  1,
+    "discardPresentInRestore":  0,
+    "discardPresentInSourceAfterTarget":  1,
+    "measuredRpoSeconds":  4.69,
+    "measuredRtoSeconds":  5.59,
+    "PITR":  true,
+    "RPO":  4.69,
+    "RTO":  5.59,
+    "outcome":  "PASS"
+}

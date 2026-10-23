@@ -1,5 +1,7 @@
 # Deployment
 
+Staging go-live steps: `docs/STAGING_CHECKLIST.md`.
+
 ## Environments
 
 Keep separate development, staging and production projects with configuration parity:

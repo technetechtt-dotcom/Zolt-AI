@@ -27,6 +27,7 @@ interface LoginResult {
   tenantId: string;
   userId: string;
   name: string;
+  email: string;
 }
 
 function sessionTokenHash(token: string): string {
@@ -202,7 +203,23 @@ export async function authenticateUser(input: {
     tenantId: membership.tenantId,
     userId: user.id,
     name: user.name,
+    email: user.email,
   };
+}
+
+export async function getUserProfile(userId: string) {
+  return db().user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      mfaEnabled: true,
+      emailVerifiedAt: true,
+      lastLoginAt: true,
+      deactivatedAt: true,
+    },
+  });
 }
 
 export async function resolveSession(
@@ -315,6 +332,7 @@ export async function switchTenantSession(input: {
       tenantId: input.tenantId,
       userId: session.userId,
       name: membership.user.name,
+      email: membership.user.email,
     };
   }
   throw new Error("SESSION_NOT_FOUND");
@@ -735,11 +753,28 @@ export async function listTenantUsers(tenantId: string) {
     include: { user: true, roles: { include: { role: true } } },
     take: 200,
   });
-  return memberships.map((membership: any) => ({
-    ...membership.user,
-    roles: membership.roles,
-    tenantId: membership.tenantId,
-  }));
+  return memberships.map((membership: (typeof memberships)[number]) => {
+    const user = membership.user;
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      kind: user.kind,
+      mfaEnabled: user.mfaEnabled,
+      invitedAt: user.invitedAt,
+      acceptedAt: user.acceptedAt,
+      lastLoginAt: user.lastLoginAt,
+      deactivatedAt: user.deactivatedAt,
+      emailVerifiedAt: user.emailVerifiedAt,
+      roles: membership.roles,
+      tenantId: membership.tenantId,
+      status: user.deactivatedAt
+        ? "deactivated"
+        : user.acceptedAt
+          ? "active"
+          : "invited",
+    };
+  });
 }
 
 export async function deactivateUser(input: {

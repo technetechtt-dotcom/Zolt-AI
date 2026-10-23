@@ -27,6 +27,10 @@ export function consoleHtml(apiBase: string): string {
     .bad { color:var(--bad); }
     canvas { width:100%; height:180px; background:#0f1728; border-radius:8px; }
     form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    form.stack { flex-direction:column; align-items:stretch; max-width:420px; }
+    form.stack input, form.stack button { width:100%; }
+    .session { display:flex; gap:10px; align-items:center; }
+    .error { color:var(--bad); min-height:1.2em; }
     .loading { min-height:120px; display:grid; place-items:center; }
     @media (max-width:760px) { header { align-items:flex-start; padding:12px; } main { padding:12px; } nav { order:4; flex-basis:100%; } input, select, textarea, button { max-width:100%; } }
     @media (prefers-color-scheme:light) { :root { color-scheme:light; --bg:#f3f6fa; --panel:#fff; --ink:#142033; --muted:#5a6680; } input, select, textarea { background:white; color:var(--ink); } }
@@ -36,26 +40,30 @@ export function consoleHtml(apiBase: string): string {
   <header>
     <strong>Zolt Console</strong>
     <nav id="nav"></nav>
-    <label class="muted">Tenant <select id="tenantSwitch" aria-label="Active tenant"></select></label>
-    <span id="who" class="muted"></span>
+    <label id="tenantLabel" class="muted" hidden>Tenant <select id="tenantSwitch" aria-label="Active tenant"></select></label>
+    <div id="sessionBar" class="session"></div>
   </header>
   <main id="app"></main>
   <script>
     const API = ${JSON.stringify(apiBase)};
+    const publicPages = new Set(["#/login","#/invite","#/reset"]);
     const pages = [
-      ["#/login","Login"],["#/command","Command Centre"],["#/fleet","Fleet"],["#/telemetry","Telemetry"],
+      ["#/command","Command Centre"],["#/fleet","Fleet"],["#/telemetry","Telemetry"],
       ["#/recommendations","Recommendations"],["#/alerts","Alerts"],["#/integrations","Integrations"],
       ["#/webhooks","Webhooks"],["#/credentials","API credentials"],["#/users","Users"],["#/audit","Audit"],
       ["#/reports","Reports"],["#/health","System health"],["#/models","Models"],["#/optimisation","Optimisation"],["#/copilot","Copilot"],["#/profile","Profile"]
     ];
-    const state = { token: localStorage.getItem("zoltToken") || "", tenantId: localStorage.getItem("zoltTenant") || "", permissions: [] };
-    function headers() {
-      const h = { "content-type":"application/json" };
+    const state = { token: localStorage.getItem("zoltToken") || "", tenantId: localStorage.getItem("zoltTenant") || "", permissions: [], email: "", name: "", userId: "" };
+    function headers(hasBody) {
+      const h = {};
+      if (hasBody) h["content-type"] = "application/json";
       if (state.token) h.authorization = "Bearer " + state.token;
       return h;
     }
     async function api(path, opts={}) {
-      const res = await fetch(API + path, { ...opts, headers: { ...headers(), ...(opts.headers||{}) } });
+      const method = String(opts.method || "GET").toUpperCase();
+      if (["POST","PATCH","PUT","DELETE"].includes(method) && opts.body == null) opts = { ...opts, body: "{}" };
+      const res = await fetch(API + path, { ...opts, headers: { ...headers(opts.body != null), ...(opts.headers||{}) } });
       const text = await res.text();
       let body; try { body = JSON.parse(text); } catch { body = text; }
       if (!res.ok) throw new Error((body && body.code) || text || res.status);
@@ -67,16 +75,40 @@ export function consoleHtml(apiBase: string): string {
     function jsonHtml(value) { return esc(JSON.stringify(value, null, 2)); }
     function nav() {
       const adminOnly = new Set(["#/credentials", "#/users", "#/audit", "#/models", "#/health"]);
-      document.getElementById("nav").innerHTML = pages.filter(([href]) => !adminOnly.has(href) || state.permissions.includes("admin:manage") || (href==="#/audit" && state.permissions.includes("audit:read"))).map(([href,label]) =>
+      const signedIn = Boolean(state.token);
+      document.getElementById("nav").innerHTML = signedIn ? pages.filter(([href]) => !adminOnly.has(href) || state.permissions.includes("admin:manage") || (href==="#/audit" && state.permissions.includes("audit:read"))).map(([href,label]) =>
         '<a href="'+href+'" class="'+(location.hash===href?'active':'')+'">'+label+'</a>'
-      ).join("");
-      document.getElementById("who").textContent = state.tenantId ? ("Tenant " + state.tenantId) : "Signed out";
+      ).join("") : '<a href="#/login" class="'+(location.hash==="#/login"||!location.hash?'active':'')+'">Sign in</a> <a href="#/invite">Accept invite</a>';
+      document.getElementById("tenantLabel").hidden = !signedIn;
+      const session = document.getElementById("sessionBar");
+      if (!signedIn) {
+        session.innerHTML = '<span class="muted">Signed out</span>';
+        return;
+      }
+      session.innerHTML = '<span id="who">'+esc(state.name || state.email || "Signed in")+(state.email && state.name ? ' <span class="muted">('+esc(state.email)+')</span>' : "")+'</span><button type="button" id="signOut" class="secondary">Sign out</button>';
+      document.getElementById("signOut").onclick = signOut;
+    }
+    function clearSession() {
+      state.token = ""; state.tenantId = ""; state.permissions = []; state.email = ""; state.name = ""; state.userId = "";
+      localStorage.removeItem("zoltToken"); localStorage.removeItem("zoltTenant");
+      document.getElementById("tenantSwitch").innerHTML = "";
+    }
+    async function signOut() {
+      try { if (state.token) await api("/v1/auth/logout", { method:"POST", body: "{}" }); } catch {}
+      clearSession();
+      location.hash = "#/login";
+      nav();
+      render();
     }
     function card(title, body) { return '<section class="card"><h2>'+title+'</h2>'+body+'</section>'; }
     async function hydrateIdentity() {
       if (!state.token) return;
       const me = await api("/v1/me");
       state.permissions = me.permissions || [];
+      state.email = me.email || "";
+      state.name = me.name || "";
+      state.userId = me.userId || "";
+      if (me.tenantId) state.tenantId = me.tenantId;
       const memberships = await api("/v1/me/tenants");
       const select = document.getElementById("tenantSwitch");
       select.innerHTML = memberships.map(m => '<option value="'+esc(m.tenant.id)+'" '+(m.tenant.id===state.tenantId?'selected':'')+'>'+esc(m.tenant.name)+'</option>').join("");
@@ -127,19 +159,64 @@ export function consoleHtml(apiBase: string): string {
       try {
         app.innerHTML = card("Loading", '<p class="loading muted" role="status">Loading tenant data…</p>');
         if (route === "#/login") {
-          app.innerHTML = card("Login", '<form id="login"><input name="email" type="email" autocomplete="username" placeholder="email" required/><input name="password" type="password" autocomplete="current-password" placeholder="password" required/><input name="totpCode" inputmode="numeric" autocomplete="one-time-code" placeholder="MFA code (if enabled)"/><input name="tenantId" placeholder="tenant id (optional)"/><button>Sign in</button></form><p class="muted">Advisory-only. No plant control.</p>');
+          if (state.token) { location.hash = "#/command"; return; }
+          app.innerHTML = card("Sign in", '<form id="login" class="stack"><label>Email <input name="email" type="email" autocomplete="username" required/></label><label>Password <input name="password" type="password" autocomplete="current-password" required/></label><label>MFA code <input name="totpCode" inputmode="numeric" autocomplete="one-time-code" placeholder="if enabled"/></label><button type="submit">Sign in</button><p id="loginError" class="error" role="alert"></p></form><p class="muted"><a href="#/invite">Accept an invitation</a> · <a href="#/reset">Reset password</a></p><p class="muted">Advisory-only. No plant control.</p>');
           document.getElementById("login").onsubmit = async (e) => {
             e.preventDefault();
-            const fd = new FormData(e.target);
-            const result = await api("/v1/auth/login", { method:"POST", body: JSON.stringify(Object.fromEntries(fd)) });
-            state.token = result.token; state.tenantId = result.tenantId;
-            localStorage.setItem("zoltToken", result.token); localStorage.setItem("zoltTenant", result.tenantId);
-            await hydrateIdentity();
-            location.hash = "#/command";
+            const err = document.getElementById("loginError");
+            err.textContent = "";
+            try {
+              const fd = new FormData(e.target);
+              const payload = Object.fromEntries([...fd.entries()].filter(([,value]) => String(value).trim()));
+              payload.deviceName = "Zolt Console";
+              const result = await api("/v1/auth/login", { method:"POST", body: JSON.stringify(payload) });
+              state.token = result.token; state.tenantId = result.tenantId; state.name = result.name || ""; state.email = result.email || ""; state.userId = result.userId || "";
+              localStorage.setItem("zoltToken", result.token); localStorage.setItem("zoltTenant", result.tenantId);
+              await hydrateIdentity();
+              location.hash = "#/command";
+              nav();
+            } catch (error) {
+              const code = error.message || "SIGN_IN_FAILED";
+              err.textContent = code === "INVALID_CREDENTIALS" ? "Email or password is incorrect." : code === "ACCOUNT_LOCKED" ? "This account is locked. Try again later or request an unlock." : code === "MFA_REQUIRED" ? "Enter your MFA code to continue." : code === "EMAIL_NOT_VERIFIED" ? "Verify your email before signing in." : code;
+            }
           };
           return;
         }
-        if (!state.token) { location.hash = "#/login"; return; }
+        if (route === "#/invite") {
+          app.innerHTML = card("Accept invitation", '<form id="invite" class="stack"><label>Invitation token <input name="token" required autocomplete="off"/></label><label>Choose a password <input name="password" type="password" autocomplete="new-password" required minlength="12"/></label><button type="submit">Activate account</button><p id="inviteError" class="error" role="alert"></p></form><p class="muted"><a href="#/login">Back to sign in</a></p>');
+          document.getElementById("invite").onsubmit = async (e) => {
+            e.preventDefault();
+            const err = document.getElementById("inviteError");
+            err.textContent = "";
+            try {
+              const fd = new FormData(e.target);
+              await api("/v1/auth/invitations/accept", { method:"POST", body: JSON.stringify(Object.fromEntries(fd)) });
+              err.className = "muted"; err.textContent = "Account activated. Sign in with your email and new password.";
+              setTimeout(() => { location.hash = "#/login"; }, 1200);
+            } catch (error) { err.textContent = error.message || "INVITE_FAILED"; }
+          };
+          return;
+        }
+        if (route === "#/reset") {
+          app.innerHTML = card("Reset password", '<form id="resetRequest" class="stack"><label>Email <input name="email" type="email" required/></label><button type="submit">Send reset</button></form><form id="resetConfirm" class="stack"><label>Reset token <input name="token" required/></label><label>New password <input name="password" type="password" autocomplete="new-password" required minlength="12"/></label><button type="submit">Set new password</button><p id="resetMsg" class="muted" role="status"></p></form><p class="muted"><a href="#/login">Back to sign in</a></p>');
+          const msg = () => document.getElementById("resetMsg");
+          document.getElementById("resetRequest").onsubmit = async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const result = await api("/v1/auth/password-reset/request", { method:"POST", body: JSON.stringify({ email: fd.get("email") }) });
+            msg().textContent = result.developmentToken ? ("Development token: " + result.developmentToken) : "If that account exists, a reset was issued.";
+          };
+          document.getElementById("resetConfirm").onsubmit = async (e) => {
+            e.preventDefault();
+            try {
+              const fd = new FormData(e.target);
+              await api("/v1/auth/password-reset/confirm", { method:"POST", body: JSON.stringify(Object.fromEntries(fd)) });
+              msg().textContent = "Password updated. Sign in with the new password.";
+            } catch (error) { msg().className = "error"; msg().textContent = error.message; }
+          };
+          return;
+        }
+        if (!state.token && !publicPages.has(route)) { location.hash = "#/login"; return; }
         if (route === "#/command") {
           const recs = await api("/v1/recommendations?tenantId="+encodeURIComponent(state.tenantId));
           const health = await api("/v1/health/system");
@@ -161,8 +238,30 @@ export function consoleHtml(apiBase: string): string {
         } else if (route === "#/users") {
           const rows = await api("/v1/users");
           const roles = await api("/v1/roles");
-          app.innerHTML = card("Users and RBAC", "<table><tr><th>Email</th><th>Name</th><th>Roles</th></tr>"+(rows.map(r=>"<tr><td>"+esc(r.email)+"</td><td>"+esc(r.name)+"</td><td>"+esc((r.roles||[]).map(x=>x.role?.key).join(", "))+"</td></tr>").join("")||"<tr><td colspan=3 class=muted>No users</td></tr>")+"</table><form id='role'><input name='userId' aria-label='User ID' placeholder='user id'/><select name='roleKey' aria-label='Tenant role'>"+roles.map(r=>"<option>"+esc(r.key)+"</option>").join("")+"</select><button>Assign tenant role</button></form>");
-          document.getElementById("role").onsubmit = async (e) => { e.preventDefault(); const fd=new FormData(e.target); await api("/v1/users/"+encodeURIComponent(fd.get("userId"))+"/roles",{method:"POST",body:JSON.stringify({roleKey:fd.get("roleKey")})}); render(); };
+          const roleOptions = roles.map(r=>"<option value='"+esc(r.key)+"'>"+esc(r.key)+"</option>").join("");
+          app.innerHTML = card("Users", "<table><tr><th>Email</th><th>Name</th><th>Status</th><th>Roles</th><th></th></tr>"+(rows.map(r=>{
+            const roleKeys=(r.roles||[]).map(x=>x.role?.key).filter(Boolean);
+            const self = r.id===state.userId;
+            return "<tr><td>"+esc(r.email)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.status||"active")+"</td><td>"+esc(roleKeys.join(", "))+'</td><td><form data-user="'+esc(r.id)+'" class="role-form"><select name="roleKey" aria-label="Role for '+esc(r.email)+'">'+roleOptions+"</select><button>Assign role</button></form>"+(self?"":" <button class='danger' data-deactivate='"+esc(r.id)+"'>Deactivate</button>")+"</td></tr>";
+          }).join("")||"<tr><td colspan=5 class=muted>No users</td></tr>")+"</table>") + card("Invite user", '<form id="inviteUser" class="stack"><input name="name" placeholder="Full name" required/><input name="email" type="email" placeholder="Email" required/><select name="roleKey" aria-label="Starting role">'+roleOptions+"</select><button>Send invite</button><p id='inviteResult' class='muted' role='status'></p></form>");
+          document.getElementById("inviteUser").onsubmit = async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const created = await api("/v1/users/invite", { method:"POST", body: JSON.stringify({ name: fd.get("name"), email: fd.get("email"), roleKey: fd.get("roleKey") }) });
+            document.getElementById("inviteResult").textContent = created.invitationToken ? ("Invite created. Share this token once: " + created.invitationToken) : "Invitation sent.";
+            if (!created.invitationToken) render();
+          };
+          app.querySelectorAll("form.role-form").forEach(form => form.onsubmit = async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            await api("/v1/users/"+encodeURIComponent(form.dataset.user)+"/roles", { method:"POST", body: JSON.stringify({ roleKey: fd.get("roleKey") }) });
+            render();
+          });
+          app.querySelectorAll("button[data-deactivate]").forEach(btn => btn.onclick = async () => {
+            if (!confirm("Deactivate this user and revoke their sessions?")) return;
+            await api("/v1/users/"+encodeURIComponent(btn.dataset.deactivate)+"/deactivate", { method:"POST" });
+            render();
+          });
         } else if (route === "#/models") {
           const rows = await api("/v1/models");
           app.innerHTML = card("Model monitoring", "<table><tr><th>Name</th><th>Version</th><th>Status</th></tr>"+(rows.map(r=>"<tr><td>"+esc(r.name)+"</td><td>"+esc(r.version)+"</td><td>"+esc(r.status)+"</td></tr>").join("")||"<tr><td colspan=3 class=muted>No registered models</td></tr>")+"</table>");
@@ -216,16 +315,21 @@ export function consoleHtml(apiBase: string): string {
           };
         } else if (route === "#/profile") {
           const me=await api("/v1/me"); const sessions=await api("/v1/me/sessions");
-          app.innerHTML=card("Profile and sessions","<p>Signed in as "+esc(me.userId||"user")+"</p><p class='muted'>Tenant: "+esc(me.tenantId)+" · MFA: "+(me.mfaEnabled?"enabled":"not enabled")+"</p><table><tr><th>Device</th><th>IP</th><th>Last seen</th><th></th></tr>"+(sessions.map(session=>"<tr><td>"+esc(session.deviceName||session.userAgent||"Unknown")+"</td><td>"+esc(session.ipAddress||"")+"</td><td>"+esc(session.lastSeenAt)+"</td><td><button class='danger' data-session='"+esc(session.id)+"'>Revoke</button></td></tr>").join("")||"<tr><td colspan=4 class=muted>No active sessions</td></tr>")+"</table><button id='logoutAll' class='danger'>Log out all sessions</button>");
+          app.innerHTML=card("Profile and sessions","<p>Signed in as <strong>"+esc(me.name||me.email||me.userId||"user")+"</strong></p><p class='muted'>"+esc(me.email||"")+" · Tenant "+esc(me.tenantId)+" · MFA "+(me.mfaEnabled?"enabled":"not enabled")+"</p><table><tr><th>Device</th><th>IP</th><th>Last seen</th><th></th></tr>"+(sessions.map(session=>"<tr><td>"+esc(session.deviceName||session.userAgent||"Unknown")+"</td><td>"+esc(session.ipAddress||"")+"</td><td>"+esc(session.lastSeenAt)+"</td><td><button class='danger' data-session='"+esc(session.id)+"'>Revoke</button></td></tr>").join("")||"<tr><td colspan=4 class=muted>No active sessions</td></tr>")+"</table><p><button id='signOutHere' class='secondary'>Sign out this device</button> <button id='logoutAll' class='danger'>Sign out all sessions</button></p>");
           app.querySelectorAll("button[data-session]").forEach(btn=>btn.onclick=async()=>{await api("/v1/me/sessions/"+encodeURIComponent(btn.dataset.session),{method:"DELETE"});render();});
-          document.getElementById("logoutAll").onclick=async()=>{await api("/v1/me/sessions",{method:"DELETE"});localStorage.removeItem("zoltToken");state.token="";location.hash="#/login";};
+          document.getElementById("signOutHere").onclick=signOut;
+          document.getElementById("logoutAll").onclick=async()=>{try{await api("/v1/me/sessions",{method:"DELETE"});}catch{} clearSession(); location.hash="#/login"; nav(); render();};
         }
       } catch (error) {
         app.innerHTML = card("Error", "<p class='bad' role='alert'>"+esc(error.message)+"</p><button onclick='render()'>Retry</button>");
       }
     }
     window.addEventListener("hashchange", render);
-    hydrateIdentity().catch(()=>{}).finally(render);
+    window.render = render;
+    hydrateIdentity().catch((error) => {
+      const code = String(error && error.message || "");
+      if (code === "UNAUTHORIZED" || code === "401" || code === "ACCOUNT_LOCKED") clearSession();
+    }).finally(render);
   </script>
 </body>
 </html>`;

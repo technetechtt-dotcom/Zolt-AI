@@ -1,0 +1,9 @@
+﻿{
+    "executedAt":  "2026-10-22T12:39:37.8871050Z",
+    "sourceDatabase":  "zolt",
+    "restoreDatabase":  "zolt_restore_1792672774",
+    "result":  "PASS",
+    "tenantCount":  1,
+    "recoveryTimeSeconds":  3.76,
+    "recoveryPoint":  "logical dump start"
+}

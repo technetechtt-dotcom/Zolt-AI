@@ -13,6 +13,7 @@ vi.mock("@zolt/database", () => ({
 
 vi.mock("@zolt/queue", () => ({
   enqueueTelemetry: vi.fn(async () => undefined),
+  pingQueue: vi.fn(async () => undefined),
   telemetryQueue: vi.fn(() => ({
     waitUntilReady: vi.fn(async () => undefined)
   }))

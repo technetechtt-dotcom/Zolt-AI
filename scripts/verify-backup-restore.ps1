@@ -5,6 +5,8 @@ param(
   [string]$Report = "docs/operations/backup-restore-result.json"
 )
 $ErrorActionPreference = "Stop"
+$dockerDir = Join-Path ${env:ProgramFiles} "Docker\Docker\resources\bin"
+if (Test-Path $dockerDir) { $env:Path = "$dockerDir;$env:Path" }
 $suffix = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 $restoreDatabase = "zolt_restore_$suffix"
 if ($restoreDatabase -notmatch '^zolt_restore_[0-9]+$') { throw "Unsafe restore database name" }
@@ -16,14 +18,20 @@ try {
   docker exec $Container createdb -U $User $restoreDatabase
   docker cp $dumpPath "${Container}:/tmp/$restoreDatabase.dump"
   docker exec $Container pg_restore -U $User -d $restoreDatabase --no-owner "/tmp/$restoreDatabase.dump"
-  $counts = docker exec $Container psql -U $User -d $restoreDatabase -Atc 'SELECT count(*) FROM "Tenant";'
+  $countSql = Join-Path ([System.IO.Path]::GetTempPath()) "zolt_count_tenant.sql"
+  Set-Content -LiteralPath $countSql -Value 'SELECT count(*) FROM "Tenant";' -Encoding ascii
+  docker cp $countSql "${Container}:/tmp/zolt_count_tenant.sql"
+  $counts = docker exec $Container psql -U $User -d $restoreDatabase -Atf /tmp/zolt_count_tenant.sql
+  $tenantCount = 0
+  [void][int]::TryParse(("$counts".Trim()), [ref]$tenantCount)
+  if ($tenantCount -lt 1) { throw "Restore verification failed: Tenant count was $tenantCount" }
   $finished = Get-Date
   $result = [ordered]@{
     executedAt = $finished.ToUniversalTime().ToString("o")
     sourceDatabase = $Database
     restoreDatabase = $restoreDatabase
     result = "PASS"
-    tenantCount = [int]$counts
+    tenantCount = $tenantCount
     recoveryTimeSeconds = [Math]::Round(($finished - $started).TotalSeconds, 2)
     recoveryPoint = "logical dump start"
   }

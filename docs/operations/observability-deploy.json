@@ -1,8 +1,16 @@
 {
-  "executedAt": "2026-10-21T12:14:20.000Z",
+  "executedAt": "2026-10-22T12:44:40.000Z",
   "stack": ["otel-collector", "prometheus", "alertmanager", "grafana", "alert-sink"],
   "composeFile": "docker-compose.yml",
+  "environment": "local-workstation",
+  "endpoints": {
+    "prometheus": "http://127.0.0.1:9096",
+    "grafana": "http://127.0.0.1:3002",
+    "alertmanager": "http://127.0.0.1:9093",
+    "alertSink": "http://127.0.0.1:9095/health",
+    "otel": "http://127.0.0.1:4318"
+  },
   "alertRouting": "http://alert-sink:9095/alerts",
-  "result": "NOT_DEPLOYED",
-  "reason": "Compose configs are ready under ops/observability/. Docker Desktop Service (com.docker.service) is Stopped and cannot be started without elevation, so Prometheus/Grafana/OTel/Alertmanager were not brought up in the target environment."
+  "result": "DEPLOYED_LOCAL",
+  "note": "Host ports remapped around GridFlex (Prometheus 9096, Grafana 3002). This is not a production cluster or a real pager destination."
 }

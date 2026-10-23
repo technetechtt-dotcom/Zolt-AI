@@ -1,18 +1,18 @@
 # Backup restore proof
 
-Status: **RESTORE AND PITR NOT EXECUTED IN THIS ENVIRONMENT** because the Docker engine is unavailable.
+Status: **EXECUTED on local Zolt Postgres** (`zolt-postgres` on host port 5433) on 2026-10-22.
 
-Retried 2026-10-21T12:14Z: Docker Desktop was restarted and WSL shut down. `com.docker.service` is Stopped/Manual; `Start-Service` failed with “Cannot open com.docker.service” (elevation required). `docker info` timed out.
-
-`scripts/verify-backup-restore.ps1` and `scripts/verify-pitr.ps1` are wired to container `zolt-postgres` with WAL `archive_mode=on`. They will measure RPO/RTO and prove a keep-probe restore that excludes a later discard-probe once Compose is healthy.
+This is a single-node Docker restore drill, not multi-region DR.
 
 ## Mandatory proof table
 
 | Item | Evidence file | Value |
 | --- | --- | --- |
-| Restore date/time | `docs/operations/backup-restore-result.json` | _pending Docker engine_ |
-| Restore RTO (seconds) | `docs/operations/backup-restore-result.json` | _pending Docker engine_ |
-| PITR probe WAL LSN | `docs/operations/pitr-result.json` | _pending Docker engine_ |
-| PITR measured RPO (seconds) | `docs/operations/pitr-result.json` | _pending Docker engine_ |
-| Operator | local campaign | Docker service requires elevation |
-| Witness | none | _pending_ |
+| Restore date/time | `docs/operations/backup-restore-result.json` | 2026-10-22T12:39:37Z |
+| Restore RTO (seconds) | `docs/operations/backup-restore-result.json` | **3.76** (logical dump into a side database, 1 tenant row) |
+| PITR probe WAL LSN | `docs/operations/pitr-result.json` | `0/3525688` |
+| PITR measured RPO (seconds) | `docs/operations/pitr-result.json` | **4.69** |
+| PITR measured RTO (seconds) | `docs/operations/pitr-result.json` | **5.59** |
+| PITR keep/discard | `docs/operations/pitr-result.json` | keep present, discard excluded, archive_mode=on, 4 WAL files |
+| Operator | local campaign | Docker engine healthy |
+| Witness | none | _pending independent review_ |

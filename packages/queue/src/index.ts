@@ -11,8 +11,22 @@ const connection = new Redis(
   process.env.REDIS_URL ?? "redis://localhost:6379",
   {
     maxRetriesPerRequest: null,
+    enableOfflineQueue: true,
+    retryStrategy: (times) => Math.min(times * 200, 2000),
   },
 );
+connection.on("error", () => undefined);
+
+export async function pingQueue(timeoutMs = 2000): Promise<void> {
+  if (connection.status === "end" || connection.status === "wait") {
+    await connection.connect();
+  }
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error("REDIS_PING_TIMEOUT")), timeoutMs);
+  });
+  const result = await Promise.race([connection.ping(), timeout]);
+  if (result !== "PONG") throw new Error("REDIS_UNAVAILABLE");
+}
 
 const telemetryIngestQueue = new Queue<ZoltTelemetryEnvelope>(
   TELEMETRY_INGEST_QUEUE,

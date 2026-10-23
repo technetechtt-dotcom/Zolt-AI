@@ -47,6 +47,7 @@ export {
   beginMfaEnrollment,
   confirmMfaEnrollment,
   deactivateUser,
+  getUserProfile,
   grantInstallationAccess,
   inviteUser,
   issueAccountUnlock,

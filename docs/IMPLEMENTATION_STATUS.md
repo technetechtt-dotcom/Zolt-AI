@@ -34,17 +34,22 @@ Updated: 2026-10-21. “Implemented” means code/configuration exists and autom
 | Internal security pre-assessment | PASS (PT-001–PT-006; skipped HIGH/CRITICAL would FAIL) | `docs/operations/security-assessment.json` |
 | Emulator forecast / anomaly train | Test MAE 4.66 kW; anomaly test F1 0.67 | `docs/operations/ml-training-result.json` |
 | Horizon vs greedy | +51.8 combined objective, constraints satisfied, advisory-only | `docs/operations/models/optimisation-validation.json` |
+| Backup restore | PASS, 1 tenant, RTO 3.76 s | `docs/operations/backup-restore-result.json` |
+| PITR | PASS, RPO 4.69 s, RTO 5.59 s | `docs/operations/pitr-result.json` |
+| Local observability | Prometheus :9096, Grafana :3002, Alertmanager :9093 | `docs/operations/observability-deploy.json` |
+| Redis/Postgres chaos | FAIL — ready did not recover within ~120 s | `docs/operations/chaos-result.json` |
 
 ## Evidence still required outside this environment
 
-These were attempted on 2026-10-21 and **did not complete**. They are not claimed as done.
+These were attempted and **did not complete**. They are not claimed as done.
 
-- **Physical GridFlex HIL** with a named inverter: COM7 opened as `HUAWEI Mobile Connect - PC UI Interface`; remaining serial devices are Arduino/Huawei/USB serial in PnP `Unknown` state. No GridFlex Edge Node or named inverter answered Modbus RTU function 03.
-- **Finish 24-hour soak then multi-day soak**: wall-clock 1,440 + 4,320 minutes. The 24h run is healthy and must continue uninterrupted; it cannot finish inside this session.
-- **Redis/Postgres chaos, backup restore, PITR with measured RPO/RTO, Prometheus/Grafana/OTel/Alertmanager in the target environment**: Docker Desktop engine returns HTTP 500; Windows service `com.docker.service` is Stopped/Manual and could not be started without elevation.
+- **Physical GridFlex HIL** with a named inverter: COM7 is a Huawei modem; no GridFlex Edge Node answered Modbus RTU function 03.
+- **Finish 24-hour soak then multi-day soak**.
+- **Chaos reconnect within 120 s** without an operator restart of the API.
+- **Production observability cluster** with a real pager/Slack route (local Grafana/Prometheus are not that).
 - **Independent penetration test**: commissioning pack ready (`docs/PENTEST_COMMISSIONING.md`). `pnpm pentest:commission` remains `NOT_COMMISSIONED` until `ZOLT_PENTEST_VENDOR`, `ZOLT_PENTEST_ENGAGEMENT_ID`, and `ZOLT_PENTEST_START_DATE` are set after a signed SOW.
 - **Production secrets manager**: rotator is live for local AES-GCM (`pnpm secrets:rotate`). No `AWS_SECRET_ID`, `GCP_SECRET_NAME`, or `AZURE_KEY_VAULT_URL` is configured, so cloud backends were not used.
 - **Real named-plant GridFlex telemetry and model validation**: `pnpm ml:benchmark` fails closed with `REAL_GRIDFLEX_DATASET_UNAVAILABLE`. Current dataset is emulator `pilot-emulator-90d-v1` (`realNamedPlant: false`).
 - External billing/payment provider, executed SLAs/support structure/privacy/DPA/terms and multi-region DR.
 
-See `docs/OPERATIONS_EVIDENCE.md` for the mandatory evidence checklist.
+Staging go-live steps: `docs/STAGING_CHECKLIST.md`. Evidence ledger: `docs/OPERATIONS_EVIDENCE.md`.
