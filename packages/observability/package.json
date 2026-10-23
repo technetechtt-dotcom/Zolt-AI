@@ -9,6 +9,6 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "fastify": "^5.2.0"
+    "fastify": "^5.12.0"
   }
 }
