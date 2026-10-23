@@ -15,6 +15,6 @@
     "@zolt/auth": "workspace:*"
   },
   "devDependencies": {
-    "prisma": "^6.19.3"
+    "prisma": "^7.9.1"
   }
 }
