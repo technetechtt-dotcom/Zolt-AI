@@ -122,6 +122,40 @@ describe("user management", () => {
     expect(body.name).toBe("Admin");
     expect(body.passwordHash).toBeUndefined();
     expect(body.mfaSecret).toBeUndefined();
+    expect(body.platformOperator).toBe(false);
+    await app.close();
+  });
+
+  it("marks unscoped platform operator sessions on /v1/me", async () => {
+    setSessionResolver(async (token) =>
+      token === "dev-token"
+        ? {
+            tenantId: "tenant-1",
+            userId: "dev-1",
+            permissions: ["admin:manage", "telemetry:read"],
+            actorType: "USER" as const,
+            unscoped: true,
+          }
+        : null,
+    );
+    const deps = createDependencies();
+    deps.getUserProfile = vi.fn(async () => ({
+      id: "dev-1",
+      email: "developer@zolt.local",
+      name: "Platform Developer",
+      mfaEnabled: false,
+    }));
+    const app = buildApiApp(deps, { logger: false });
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/me",
+      headers: { authorization: "Bearer dev-token" },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      email: "developer@zolt.local",
+      platformOperator: true,
+    });
     await app.close();
   });
 

@@ -7,61 +7,148 @@ export const WEBHOOK_DELIVERY_QUEUE = "webhook-delivery";
 export const DEAD_LETTER_QUEUE = "dead-letter";
 export const POISON_QUARANTINE_QUEUE = "poison-quarantine";
 
-const connection = new Redis(
-  process.env.REDIS_URL ?? "redis://localhost:6379",
-  {
+export function createRedisConnection(
+  url = process.env.REDIS_URL ?? "redis://localhost:6379",
+): Redis {
+  const redis = new Redis(url, {
     maxRetriesPerRequest: null,
     enableOfflineQueue: true,
-    retryStrategy: (times) => Math.min(times * 200, 2000),
-  },
-);
-connection.on("error", () => undefined);
-
-export async function pingQueue(timeoutMs = 2000): Promise<void> {
-  if (connection.status === "end" || connection.status === "wait") {
-    await connection.connect();
-  }
-  const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error("REDIS_PING_TIMEOUT")), timeoutMs);
+    connectTimeout: 4_000,
+    keepAlive: 10_000,
+    retryStrategy: (times) => Math.min(200 + times * 150, 2_000),
+    reconnectOnError: (error) => {
+      const message = error.message ?? "";
+      return (
+        message.includes("READONLY") ||
+        message.includes("ECONNRESET") ||
+        message.includes("ETIMEDOUT") ||
+        message.includes("EPIPE")
+      );
+    },
   });
-  const result = await Promise.race([connection.ping(), timeout]);
-  if (result !== "PONG") throw new Error("REDIS_UNAVAILABLE");
+  redis.on("error", () => undefined);
+  return redis;
 }
 
-const telemetryIngestQueue = new Queue<ZoltTelemetryEnvelope>(
-  TELEMETRY_INGEST_QUEUE,
-  {
-    connection,
-  },
-);
-const webhookDeliveryQueue = new Queue<WebhookDeliveryPayload>(
-  WEBHOOK_DELIVERY_QUEUE,
-  {
-    connection,
-  },
-);
-const deadLetterQueue = new Queue<DeadLetterPayload>(DEAD_LETTER_QUEUE, {
-  connection,
-});
-const poisonQuarantineQueue = new Queue<DeadLetterPayload>(
-  POISON_QUARANTINE_QUEUE,
-  { connection },
-);
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, code: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(code)), timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function waitUntilReady(redis: Redis, timeoutMs: number): Promise<void> {
+  if (redis.status === "ready") return;
+  if (redis.status === "end" || redis.status === "wait" || redis.status === "close") {
+    await withTimeout(redis.connect(), timeoutMs, "REDIS_CONNECT_TIMEOUT");
+    return;
+  }
+  await withTimeout(
+    new Promise<void>((resolve) => {
+      if (redis.status === "ready") {
+        resolve();
+        return;
+      }
+      redis.once("ready", () => resolve());
+    }),
+    timeoutMs,
+    "REDIS_READY_TIMEOUT",
+  );
+}
+
+let connection = createRedisConnection();
+let reconnecting: Promise<void> | null = null;
+
+function buildQueues(redis: Redis) {
+  return {
+    telemetry: new Queue<ZoltTelemetryEnvelope>(TELEMETRY_INGEST_QUEUE, {
+      connection: redis,
+    }),
+    webhook: new Queue<WebhookDeliveryPayload>(WEBHOOK_DELIVERY_QUEUE, {
+      connection: redis,
+    }),
+    deadLetter: new Queue<DeadLetterPayload>(DEAD_LETTER_QUEUE, {
+      connection: redis,
+    }),
+    poison: new Queue<DeadLetterPayload>(POISON_QUARANTINE_QUEUE, {
+      connection: redis,
+    }),
+  };
+}
+
+let queues = buildQueues(connection);
+
+export async function reconnectQueue(): Promise<void> {
+  if (reconnecting) return reconnecting;
+  reconnecting = (async () => {
+    const previous = queues;
+    const previousConnection = connection;
+    try {
+      await Promise.allSettled([
+        previous.telemetry.close(),
+        previous.webhook.close(),
+        previous.deadLetter.close(),
+        previous.poison.close(),
+      ]);
+    } catch {
+      /* ignore */
+    }
+    try {
+      previousConnection.disconnect();
+    } catch {
+      /* ignore */
+    }
+    connection = createRedisConnection();
+    queues = buildQueues(connection);
+    await waitUntilReady(connection, 8_000);
+  })().finally(() => {
+    reconnecting = null;
+  });
+  return reconnecting;
+}
+
+export async function pingQueue(
+  timeoutMs = 1_500,
+  options: { reconnect?: boolean } = {},
+): Promise<void> {
+  const reconnect = options.reconnect !== false;
+  try {
+    await waitUntilReady(connection, timeoutMs);
+    const result = await withTimeout(
+      connection.ping(),
+      timeoutMs,
+      "REDIS_PING_TIMEOUT",
+    );
+    if (result !== "PONG") throw new Error("REDIS_UNAVAILABLE");
+  } catch (error) {
+    if (reconnect) void reconnectQueue().catch(() => undefined);
+    throw error instanceof Error ? error : new Error("REDIS_UNAVAILABLE");
+  }
+}
 
 export function telemetryQueue(): Queue<ZoltTelemetryEnvelope> {
-  return telemetryIngestQueue;
+  return queues.telemetry;
 }
 
 export function webhookQueue(): Queue<WebhookDeliveryPayload> {
-  return webhookDeliveryQueue;
+  return queues.webhook;
 }
 
 export function deadLetterQueueHandle(): Queue<DeadLetterPayload> {
-  return deadLetterQueue;
+  return queues.deadLetter;
 }
 
 export function poisonQuarantineQueueHandle(): Queue<DeadLetterPayload> {
-  return poisonQuarantineQueue;
+  return queues.poison;
 }
 
 export async function enqueueTelemetry(

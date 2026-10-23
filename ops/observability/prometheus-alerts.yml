@@ -37,3 +37,30 @@ groups:
           service: zolt-api
         annotations:
           summary: API P95 latency above 500ms
+
+      - alert: ZoltQueueBacklog
+        expr: zolt_queue_oldest_message_age_ms > 60000
+        for: 5m
+        labels:
+          severity: warning
+          service: zolt-worker
+        annotations:
+          summary: Telemetry queue age above 60s
+
+      - alert: ZoltRedisDown
+        expr: zolt_redis_available == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: zolt-api
+        annotations:
+          summary: Redis unavailable to Zolt API
+
+      - alert: ZoltWorkerDown
+        expr: up{job="zolt-worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: zolt-worker
+        annotations:
+          summary: Worker health scrape is down

@@ -1,20 +1,35 @@
 ﻿{
-    "executedAt":  "2026-10-22T12:56:28.6695857Z",
-    "result":  "FAIL",
+    "executedAt":  "2026-10-23T11:15:20.3543428Z",
+    "result":  "PASS",
+    "recoveryBudgetSeconds":  60,
     "runs":  [
                  {
-                     "executedAt":  "2026-10-22T12:54:00.1050585Z",
+                     "executedAt":  "2026-10-23T11:14:44.8259503Z",
                      "target":  "redis",
                      "outageSeconds":  15,
-                     "recovered":  false,
-                     "recoverySeconds":  122.36
+                     "recoveryBudgetSeconds":  60,
+                     "recovered":  true,
+                     "apiReady":  true,
+                     "gatewayReady":  true,
+                     "workerReady":  true,
+                     "queuedTelemetrySurvived":  false,
+                     "duplicateRecommendations":  0,
+                     "recoverySeconds":  5.69,
+                     "operatorRestart":  false
                  },
                  {
-                     "executedAt":  "2026-10-22T12:56:28.6695857Z",
+                     "executedAt":  "2026-10-23T11:15:20.3543428Z",
                      "target":  "postgres",
                      "outageSeconds":  15,
-                     "recovered":  false,
-                     "recoverySeconds":  131.11
+                     "recoveryBudgetSeconds":  60,
+                     "recovered":  true,
+                     "apiReady":  true,
+                     "gatewayReady":  true,
+                     "workerReady":  true,
+                     "queuedTelemetrySurvived":  null,
+                     "duplicateRecommendations":  0,
+                     "recoverySeconds":  10.07,
+                     "operatorRestart":  false
                  }
              ]
 }

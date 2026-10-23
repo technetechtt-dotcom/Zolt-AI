@@ -140,9 +140,53 @@ function ingest(results: Result[]): void {
   }
 }
 
+const resourceSamples: Array<Record<string, unknown>> = [];
+
+async function sampleResources(): Promise<Record<string, unknown>> {
+  const mem = process.memoryUsage();
+  const sample: Record<string, unknown> = {
+    at: new Date().toISOString(),
+    rssMb: Number((mem.rss / 1024 / 1024).toFixed(1)),
+    heapUsedMb: Number((mem.heapUsed / 1024 / 1024).toFixed(1)),
+  };
+  try {
+    const health = await fetch("http://localhost:4000/v1/queues/health", {
+      headers: { "x-zolt-api-key": apiKey ?? "", "x-zolt-tenant-id": tenantId },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (health.ok) sample.queues = await health.json();
+  } catch {
+    /* ignore */
+  }
+  try {
+    const ready = await fetch("http://localhost:4000/health/ready", {
+      signal: AbortSignal.timeout(2000),
+    });
+    sample.apiReady = ready.ok;
+  } catch {
+    sample.apiReady = false;
+  }
+  resourceSamples.push(sample);
+  if (resourceSamples.length > 96) resourceSamples.splice(0, resourceSamples.length - 48);
+  return sample;
+}
+
+function leakSignals(): Record<string, unknown> {
+  if (resourceSamples.length < 4) return { inconclusive: true };
+  const first = resourceSamples[0] as { heapUsedMb?: number };
+  const last = resourceSamples.at(-1) as { heapUsedMb?: number };
+  const heapGrowthMb = Number((((last?.heapUsedMb ?? 0) - (first?.heapUsedMb ?? 0)).toFixed(1)));
+  return {
+    heapGrowthMb,
+    sampleCount: resourceSamples.length,
+    growingHeap: heapGrowthMb > 64,
+  };
+}
+
 async function checkpoint(cycle: number): Promise<void> {
   const durationMs = performance.now() - started;
   const sorted = [...latencies].sort((a, b) => a - b);
+  await sampleResources();
   const report = {
     generatedAt: new Date().toISOString(),
     target: url,
@@ -166,7 +210,9 @@ async function checkpoint(cycle: number): Promise<void> {
       p95: Number(percentile(sorted, 0.95).toFixed(2)),
       p99: Number(percentile(sorted, 0.99).toFixed(2))
     },
-    statusCodes: Object.fromEntries(statusCodes)
+    statusCodes: Object.fromEntries(statusCodes),
+    resources: leakSignals(),
+    latestSample: resourceSamples.at(-1)
   };
   await mkdir("docs/operations", { recursive: true });
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
@@ -202,6 +248,7 @@ if (soakMinutes > 0) {
 
 const durationMs = performance.now() - started;
 const sorted = [...latencies].sort((a, b) => a - b);
+await sampleResources();
 const report = {
   generatedAt: new Date().toISOString(),
   target: url,
@@ -225,7 +272,9 @@ const report = {
     p99: Number(percentile(sorted, 0.99).toFixed(2))
   },
   p95BudgetMs,
-  statusCodes: Object.fromEntries(statusCodes)
+  statusCodes: Object.fromEntries(statusCodes),
+  resources: leakSignals(),
+  latestSample: resourceSamples.at(-1)
 };
 
 await mkdir("docs/operations", { recursive: true });

@@ -14,6 +14,12 @@ import {
 } from "@zolt/auth";
 import { prisma } from "../client.js";
 import { writeAuditEvent } from "./audit.js";
+import {
+  grantPlatformOperatorOnAllTenants,
+  grantPlatformOperatorOnTenant,
+  platformOperatorPermissions,
+  userIsPlatformOperator,
+} from "./platform-operators.js";
 
 function db(): any {
   return prisma as unknown as any;
@@ -152,11 +158,29 @@ export async function authenticateUser(input: {
     if (!validTotp && !validRecovery) throw new Error("MFA_REQUIRED");
   }
 
-  const membership = input.tenantId
+  const platformOperator = await userIsPlatformOperator(user.id);
+  if (platformOperator) {
+    await grantPlatformOperatorOnAllTenants(user.id);
+  }
+  let membership = input.tenantId
     ? user.memberships.find(
         (item: { tenantId: string }) => item.tenantId === input.tenantId,
       )
     : user.memberships[0];
+  if (!membership && platformOperator && input.tenantId) {
+    await grantPlatformOperatorOnTenant(input.tenantId, user.id);
+    membership = { tenantId: input.tenantId };
+  }
+  if (!membership && platformOperator) {
+    const tenant = await db().tenant.findFirst({
+      where: { archivedAt: null },
+      orderBy: { createdAt: "asc" },
+    });
+    if (tenant) {
+      await grantPlatformOperatorOnTenant(tenant.id, user.id);
+      membership = { tenantId: tenant.id };
+    }
+  }
   if (!membership)
     throw new Error(input.tenantId ? "TENANT_MISMATCH" : "TENANT_REQUIRED");
 
@@ -253,11 +277,15 @@ export async function resolveSession(
         data: { lastActiveAt: now },
       }),
     ]);
+    const platformOperator = await userIsPlatformOperator(session.userId);
     return {
       tenantId: session.tenantId,
       userId: session.userId,
-      permissions: [...permissions],
+      permissions: platformOperator
+        ? platformOperatorPermissions()
+        : [...permissions],
       actorType: "USER",
+      unscoped: platformOperator,
     };
   }
   return null;
@@ -286,6 +314,9 @@ export async function switchTenantSession(input: {
 }): Promise<LoginResult> {
   const session = await findSessionByToken(input.token);
   if (session) {
+    if (await userIsPlatformOperator(session.userId)) {
+      await grantPlatformOperatorOnTenant(input.tenantId, session.userId);
+    }
     const membership = await db().tenantMembership.findUnique({
       where: {
         tenantId_userId: { tenantId: input.tenantId, userId: session.userId },
@@ -342,6 +373,16 @@ export async function listUserTenants(input: {
   tenantId: string;
   userId: string;
 }) {
+  if (await userIsPlatformOperator(input.userId)) {
+    await grantPlatformOperatorOnAllTenants(input.userId);
+    return db().tenantMembership.findMany({
+      where: { userId: input.userId },
+      include: {
+        tenant: { select: { id: true, name: true, plan: true, region: true } },
+        roles: { include: { role: true } },
+      },
+    });
+  }
   const current = await db().tenantMembership.findUnique({
     where: {
       tenantId_userId: { tenantId: input.tenantId, userId: input.userId },

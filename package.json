@@ -53,6 +53,7 @@
     "obs:up": "docker compose up -d",
     "soak:supervise": "tsx scripts/soak-supervisor.ts",
     "ml:benchmark": "tsx scripts/benchmark-models.ts",
+    "ml:real-gate": "tsx scripts/real-data-gate.ts",
     "pentest:commission": "tsx scripts/commission-pentest.ts"
   },
   "devDependencies": {

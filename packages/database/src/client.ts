@@ -44,3 +44,26 @@ if (queryEvents) {
 if (process.env.NODE_ENV !== "production") {
   globalThis.__zoltPrisma = prisma;
 }
+
+export async function pingDatabase(timeoutMs = 1_500): Promise<void> {
+  const run = async (): Promise<void> => {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("DATABASE_PING_TIMEOUT")), timeoutMs);
+      }),
+    ]);
+  };
+  try {
+    await run();
+    return;
+  } catch {
+    try {
+      await prisma.$disconnect();
+    } catch {
+      /* ignore */
+    }
+    await prisma.$connect();
+    await run();
+  }
+}

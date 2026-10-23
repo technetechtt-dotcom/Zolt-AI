@@ -24,7 +24,7 @@ Replay keys are single-use for 10 minutes. Signing timestamps older than 5 minut
 
 ## Production deployment
 
-Local and pilot deployments use `tsx scripts/managed-secrets.ts` (`pnpm secrets:rotate`). Secrets are wrapped with AES-256-GCM under `ZOLT_MASTER_KEY` and written to `ops/secrets/store.json` (gitignored). When `AWS_SECRET_ID`, `GCP_SECRET_NAME`, or `AZURE_KEY_VAULT_URL` is set, the same rotator records that managed backend instead of implying env-file storage.
+`pnpm secrets:rotate` writes ciphertext under `ZOLT_MASTER_KEY` for local use. Staging/production must set `ZOLT_SECRETS_PROVIDER=aws|gcp|azure` plus CLI credentials (`aws`, `gcloud`, or `az`). The rotator then puts new versions in the managed backend and checks that previous plaintext is no longer returned. Absence of cloud credentials is recorded as blocked, not as a pass.
 
 Evidence: `docs/operations/managed-secrets.json`.
 

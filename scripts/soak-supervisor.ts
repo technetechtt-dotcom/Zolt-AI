@@ -63,6 +63,25 @@ function startSoak(minutes: number, report: string): void {
 }
 
 process.stdout.write("soak-supervisor watching 24h then multi-day\n");
+const currentAtBoot = await readReport(twentyFourHourReport);
+if (!complete(currentAtBoot, 1440)) {
+  await writeFile(
+    twentyFourHourReport,
+    `${JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        inProgress: true,
+        soakMinutes: 1440,
+        startedAt: new Date().toISOString(),
+        freshRun: true,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  startSoak(1440, twentyFourHourReport);
+  process.stdout.write("started fresh 24h soak; ignoring prior unfinished artifact\n");
+}
 for (;;) {
   const current = await readReport(twentyFourHourReport);
   if (complete(current, 1440)) {

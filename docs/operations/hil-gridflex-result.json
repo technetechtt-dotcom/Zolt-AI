@@ -1,0 +1,19 @@
+{
+  "executedAt": "2026-10-23T11:16:10.000Z",
+  "result": "FAIL",
+  "pipeline": "GridFlex Edge Node → USB-RS485 → inverter → Zolt",
+  "portsObserved": [
+    { "id": "COM4", "name": "USB Serial Device", "status": "Unknown", "open": "The port does not exist" },
+    { "id": "COM5", "name": "Arduino Uno" },
+    { "id": "COM6", "name": "Arduino Uno" },
+    { "id": "COM7", "name": "HUAWEI Mobile Connect - PC UI Interface" }
+  ],
+  "inverterMake": null,
+  "inverterModel": null,
+  "firmware": null,
+  "slaveId": null,
+  "baudParity": null,
+  "registerMapRevision": null,
+  "rawModbus": null,
+  "reason": "No genuine USB-RS485 adapter with a supported inverter or hardware emulator is attached. COM4 is listed but cannot be opened. COM7 remains a Huawei modem. Emulator HIL is a separate PASS and is not this physical pipeline."
+}

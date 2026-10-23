@@ -1,6 +1,6 @@
 import "dotenv/config";
+import { createServer } from "node:http";
 import { Worker } from "bullmq";
-import { Redis } from "ioredis";
 import { energySkills } from "@zolt/capability-energy";
 import type { ZoltTelemetryEnvelope } from "@zolt/contracts";
 import { AnalysisOrchestrator } from "@zolt/core";
@@ -8,6 +8,7 @@ import {
   listActiveWebhooks,
   listTelemetryForInstallation,
   markWebhookResult,
+  pingDatabase,
   recordWebhookDelivery,
   runRetentionJobs,
   saveRecommendations,
@@ -16,6 +17,7 @@ import {
 } from "@zolt/database";
 import { logError, logInfo, metrics } from "@zolt/observability";
 import {
+  createRedisConnection,
   enqueueDeadLetter,
   enqueueWebhookDelivery,
   TenantFairnessGate,
@@ -27,9 +29,7 @@ import { assertProductionConfiguration } from "@zolt/auth";
 
 assertProductionConfiguration("worker");
 
-const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-});
+const redis = createRedisConnection();
 
 const orchestrator = new AnalysisOrchestrator(energySkills);
 const MAX_QUEUE_AGE_MS = Number(
@@ -227,6 +227,41 @@ redis.on("error", () =>
   }),
 );
 
+const healthServer = createServer(async (req, res) => {
+  const path = req.url ?? "/";
+  if (path === "/health/live") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ status: "ok", service: "zolt-worker" }));
+    return;
+  }
+  if (path === "/metrics") {
+    res.writeHead(200, { "content-type": "text/plain; version=0.0.4" });
+    res.end(metrics.renderPrometheus());
+    return;
+  }
+  if (path === "/health/ready" || path === "/health/ready/") {
+    try {
+      await pingDatabase(1500);
+      const pong = await Promise.race([
+        redis.ping(),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("REDIS_PING_TIMEOUT")), 1500);
+        }),
+      ]);
+      if (pong !== "PONG") throw new Error("REDIS_UNAVAILABLE");
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ status: "ok", service: "zolt-worker" }));
+    } catch {
+      res.writeHead(503, { "content-type": "application/json" });
+      res.end(JSON.stringify({ status: "degraded", service: "zolt-worker" }));
+    }
+    return;
+  }
+  res.writeHead(404);
+  res.end();
+});
+healthServer.listen(Number(process.env.WORKER_HEALTH_PORT ?? 4003), "0.0.0.0");
+
 logInfo("worker.start", {
   message: "Zolt worker online",
   correlationEnabled: true,
@@ -241,18 +276,19 @@ const retentionTimer = setInterval(
 );
 retentionTimer.unref();
 
-process.on("SIGINT", async () => {
+async function shutdown(): Promise<void> {
   clearInterval(retentionTimer);
+  healthServer.close();
   await telemetryWorker.close();
   await webhookWorker.close();
   await redis.quit();
   process.exit(0);
+}
+
+process.on("SIGINT", () => {
+  void shutdown();
 });
 
-process.on("SIGTERM", async () => {
-  clearInterval(retentionTimer);
-  await telemetryWorker.close();
-  await webhookWorker.close();
-  await redis.quit();
-  process.exit(0);
+process.on("SIGTERM", () => {
+  void shutdown();
 });

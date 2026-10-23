@@ -47,7 +47,9 @@ Console: `http://localhost:4002`
 API: `http://localhost:4000`
 Gateway: `http://localhost:4001`
 
-Development seed admin: `admin@zolt.local` / `ChangeMeNow!23`. Production seeding rejects these defaults.
+Development seed admin: `admin@zolt.local` / `ChangeMeNow!23`.
+Development platform developer (full access, all tenants): `developer@zolt.local` / `ZoltMaintain!24`.
+Production seeding rejects these defaults.
 
 ## Production deployment
 

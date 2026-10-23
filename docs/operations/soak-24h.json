@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-21T13:11:13.084Z",
+  "generatedAt": "2026-10-23T11:15:58.490Z",
   "target": "http://localhost:4001/v1/ingest/gridflex",
   "simulated": true,
   "tier": "10",
@@ -9,19 +9,31 @@
   "reconnectEvery": 0,
   "reconnectPauseMs": 500,
   "reconnectBursts": 0,
-  "cycle": 39281,
+  "cycle": 4,
   "inProgress": true,
-  "messages": 1964050,
-  "successful": 1964050,
-  "failed": 0,
-  "durationMs": 12022367.25,
-  "messagesPerSecond": 163.37,
+  "messages": 200,
+  "successful": 0,
+  "failed": 200,
+  "durationMs": 948.75,
+  "messagesPerSecond": 210.8,
   "latencyMs": {
-    "p50": 54.28,
-    "p95": 87.77,
-    "p99": 113.07
+    "p50": 42.96,
+    "p95": 124.75,
+    "p99": 156.68
   },
   "statusCodes": {
-    "202": 1964050
+    "403": 121,
+    "429": 79
+  },
+  "resources": {
+    "heapGrowthMb": 5.1,
+    "sampleCount": 4,
+    "growingHeap": false
+  },
+  "latestSample": {
+    "at": "2026-10-23T11:15:58.469Z",
+    "rssMb": 79.9,
+    "heapUsedMb": 17,
+    "apiReady": true
   }
 }

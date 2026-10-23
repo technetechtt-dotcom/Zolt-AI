@@ -39,6 +39,30 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue age",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [{ "expr": "zolt_queue_oldest_message_age_ms", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue jobs",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [{ "expr": "zolt_queue_jobs", "refId": "A" }]
+    },
+    {
+      "type": "stat",
+      "title": "Redis available",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 20 },
+      "targets": [{ "expr": "zolt_redis_available", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Recommendation / worker duration",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 20 },
+      "targets": [{ "expr": "zolt_worker_processing_duration_ms", "refId": "A" }]
     }
   ]
 }

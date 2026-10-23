@@ -1,4 +1,5 @@
 import { prisma } from "../client.js";
+import { syncPlatformOperatorsToTenant } from "./platform-operators.js";
 
 export interface IdentityRef {
   tenantKey: string;
@@ -119,6 +120,7 @@ export async function ensureInstallationIdentity(
       name: ref.installationKey,
     },
   });
+  await syncPlatformOperatorsToTenant(tenant.id);
   return {
     tenantId: tenant.id,
     productId: product.id,

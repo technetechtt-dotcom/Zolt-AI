@@ -21,4 +21,8 @@ describe("console authentication UI", () => {
     expect(html).toContain("/deactivate");
     expect(html).toContain("Invite user");
   });
+
+  it("labels platform operators in the session bar", () => {
+    expect(html).toContain("Platform operator");
+  });
 });

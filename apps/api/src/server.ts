@@ -344,6 +344,7 @@ function unrestrictedInstallationAccess(
   principal: AuthenticatedPrincipal,
 ): boolean {
   return (
+    principal.unscoped === true ||
     !principal.userId ||
     principal.permissions.includes("admin:manage") ||
     principal.permissions.includes("installation:manage")
@@ -824,6 +825,7 @@ export function buildApiApp(
       lastLoginAt: profile?.lastLoginAt ?? null,
       permissions: req.zoltAuth?.permissions ?? [],
       actorType: req.zoltAuth?.actorType,
+      platformOperator: req.zoltAuth?.unscoped === true,
     };
   });
 
@@ -1555,6 +1557,30 @@ export function buildApiApp(
     },
   );
 
+  app.post(
+    "/v1/simulate",
+    { preHandler: [requireApiKey, requirePermission("recommendation:read")] },
+    async (req) => {
+      const body = req.body as Record<string, unknown>;
+      const plan = await dependencies.optimise?.({
+        forecastKw: Number(body.forecastKw ?? 0),
+        exportLimitKw: Number(body.exportLimitKw ?? 0),
+        loadKw: Number(body.loadKw ?? 0),
+        batterySocPct: Number(body.batterySocPct ?? 50),
+        batteryPowerKw: Number(body.batteryPowerKw ?? 50),
+        hydrogenCapacityKgPerHour: Number(body.hydrogenCapacityKgPerHour ?? 0),
+        tariff: Number(body.tariff ?? 1.2),
+      });
+      return {
+        stage: "simulate",
+        plantExecution: false,
+        humanApprovalRequired: true,
+        advisoryOnly: true,
+        plan,
+      };
+    },
+  );
+
   app.get(
     "/v1/billing",
     { preHandler: [requireApiKey, requirePermission("admin:manage")] },
@@ -1683,13 +1709,7 @@ export async function startApiServer(): Promise<void> {
     writeAuditEvent: database.writeAuditEvent,
     readinessCheck: async () => {
       try {
-        try {
-          await database.prisma.$queryRaw`SELECT 1`;
-        } catch {
-          await database.prisma.$disconnect();
-          await database.prisma.$connect();
-          await database.prisma.$queryRaw`SELECT 1`;
-        }
+        await database.pingDatabase();
         await queue.pingQueue();
         return true;
       } catch {

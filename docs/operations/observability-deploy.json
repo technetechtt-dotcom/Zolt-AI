@@ -12,5 +12,7 @@
   },
   "alertRouting": "http://alert-sink:9095/alerts",
   "result": "DEPLOYED_LOCAL",
+  "dashboards": ["telemetry throughput", "queue age", "DB/Redis health", "recommendation/worker duration", "connector scrape", "model/worker health"],
+  "alertDestination": "local alert-sink :9095; set ZOLT_ALERT_WEBHOOK_URL for Slack/Teams/email",
   "note": "Host ports remapped around GridFlex (Prometheus 9096, Grafana 3002). This is not a production cluster or a real pager destination."
 }

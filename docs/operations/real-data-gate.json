@@ -1,0 +1,14 @@
+{
+  "executedAt": "2026-10-23T11:15:48.415Z",
+  "failClosed": true,
+  "namedPlant": null,
+  "dataset": null,
+  "scores": {
+    "solarForecastMae": null,
+    "curtailmentAuc": null,
+    "anomalyRecall": null,
+    "commsFailureRecall": null
+  },
+  "result": "FAIL",
+  "reason": "No named-plant dataset. Emulator scores are not accepted."
+}

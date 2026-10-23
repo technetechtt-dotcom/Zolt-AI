@@ -21,6 +21,11 @@ scrape_configs:
       - targets: ["host.docker.internal:4001"]
     metrics_path: /metrics
 
+  - job_name: "zolt-worker"
+    static_configs:
+      - targets: ["host.docker.internal:4003"]
+    metrics_path: /metrics
+
   - job_name: "otel-collector"
     static_configs:
       - targets: ["otel-collector:9464"]

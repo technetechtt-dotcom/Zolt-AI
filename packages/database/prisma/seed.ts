@@ -7,6 +7,7 @@ import {
   hashSecret,
 } from "@zolt/auth";
 import { PermissionKey, ROLE_PERMISSIONS, RoleKey } from "@zolt/contracts";
+import { ensurePlatformDeveloperAccount } from "../src/repositories/platform-operators.js";
 
 const prisma = new PrismaClient();
 
@@ -143,6 +144,11 @@ async function main(): Promise<void> {
       update: {},
       create: { tenantId: tenant.id, userId: user.id, roleId: adminRole.id },
     });
+  }
+
+  const developer = await ensurePlatformDeveloperAccount();
+  if (developer) {
+    console.log(`Platform developer ready: ${developer.email}`);
   }
 
   const apiKey =

@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated: 2026-10-21. “Implemented” means code/configuration exists and automated local checks pass. Operational evidence is listed separately; items that did not execute in this environment are **not** marked complete.
+Updated: 2026-10-23. “Implemented” means code/configuration exists and automated local checks pass. Operational evidence is listed separately; items that did not execute in this environment are **not** marked complete.
 
 ## Implemented in the repository
 
@@ -37,19 +37,25 @@ Updated: 2026-10-21. “Implemented” means code/configuration exists and autom
 | Backup restore | PASS, 1 tenant, RTO 3.76 s | `docs/operations/backup-restore-result.json` |
 | PITR | PASS, RPO 4.69 s, RTO 5.59 s | `docs/operations/pitr-result.json` |
 | Local observability | Prometheus :9096, Grafana :3002, Alertmanager :9093 | `docs/operations/observability-deploy.json` |
-| Redis/Postgres chaos | FAIL — ready did not recover within ~120 s | `docs/operations/chaos-result.json` |
+| Redis/Postgres chaos | PASS — API/gateway/worker recovered in 5.69 s (Redis) and 10.07 s (Postgres) without operator restart; 0 duplicate recommendations | `docs/operations/chaos-result.json` |
+| Fresh 24-hour soak | Started 2026-10-23; prior unfinished artifact discarded | `docs/operations/soak-24h.json` |
+| Managed secrets | Local AES-GCM only; cloud backend blocked until `ZOLT_SECRETS_PROVIDER` + CLI credentials | `docs/operations/managed-secrets.json` |
+| Real-data ML gate | FAIL closed (no named plant dataset) | `docs/operations/real-data-gate.json` |
+| Field pilot | BLOCKED — no named site attached | `docs/operations/field-pilot.json` |
+| Commercial package | SLA, onboarding, escalation, DPA/POPIA summary, acceptance, success report | `docs/pilot/COMMERCIAL_PACKAGE.md` |
 
 ## Evidence still required outside this environment
 
 These were attempted and **did not complete**. They are not claimed as done.
 
-- **Physical GridFlex HIL** with a named inverter: COM7 is a Huawei modem; no GridFlex Edge Node answered Modbus RTU function 03.
-- **Finish 24-hour soak then multi-day soak**.
-- **Chaos reconnect within 120 s** without an operator restart of the API.
-- **Production observability cluster** with a real pager/Slack route (local Grafana/Prometheus are not that).
+- **Physical GridFlex HIL** with a named inverter and genuine USB-RS485 path.
+- **Finish the fresh 24-hour soak then multi-day soak** (instrumented for heap, queue, P95/P99; cannot complete in-session).
+- **Queued telemetry survival across Redis AOF** still measured false on the 2026-10-23 Redis run; reconnect itself PASSed.
+- **Staging observability cluster** with a real pager/Slack/Teams destination (local Grafana :3002 / Prometheus :9096 / Alertmanager :9093 remain workstation-bound).
 - **Independent penetration test**: commissioning pack ready (`docs/PENTEST_COMMISSIONING.md`). `pnpm pentest:commission` remains `NOT_COMMISSIONED` until `ZOLT_PENTEST_VENDOR`, `ZOLT_PENTEST_ENGAGEMENT_ID`, and `ZOLT_PENTEST_START_DATE` are set after a signed SOW.
-- **Production secrets manager**: rotator is live for local AES-GCM (`pnpm secrets:rotate`). No `AWS_SECRET_ID`, `GCP_SECRET_NAME`, or `AZURE_KEY_VAULT_URL` is configured, so cloud backends were not used.
-- **Real named-plant GridFlex telemetry and model validation**: `pnpm ml:benchmark` fails closed with `REAL_GRIDFLEX_DATASET_UNAVAILABLE`. Current dataset is emulator `pilot-emulator-90d-v1` (`realNamedPlant: false`).
-- External billing/payment provider, executed SLAs/support structure/privacy/DPA/terms and multi-region DR.
+- **Production/staging secrets manager**: rotator supports AWS/GCP/Azure CLIs. No cloud credentials are configured, so values remain local AES-GCM.
+- **Real named-plant GridFlex telemetry and model validation**: `pnpm ml:real-gate` fails closed without `ZOLT_REAL_PLANT_ID` and `ZOLT_REAL_DATASET_PATH`.
+- Signed DPA/SLA with a customer (templates are in `docs/pilot/COMMERCIAL_PACKAGE.md`).
+- Automatic plant execution remains out of scope. The loop is Predict → Optimise → Simulate → Human approve (`docs/ADVISORY_LOOP.md`).
 
 Staging go-live steps: `docs/STAGING_CHECKLIST.md`. Evidence ledger: `docs/OPERATIONS_EVIDENCE.md`.

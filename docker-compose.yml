@@ -33,7 +33,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: zolt-redis
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
     ports: ["${ZOLT_REDIS_PORT:-6379}:6379"]
+    volumes:
+      - zolt-redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -112,5 +115,6 @@ services:
 volumes:
   zolt-postgres: {}
   zolt-wal-archive: {}
+  zolt-redis: {}
   zolt-prometheus: {}
   zolt-grafana: {}

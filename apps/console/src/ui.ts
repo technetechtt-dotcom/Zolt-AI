@@ -6,34 +6,43 @@ export function consoleHtml(apiBase: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Zolt Console</title>
   <style>
-    :root { color-scheme:dark; --bg:#0b1220; --panel:#121a2b; --ink:#e8eefc; --muted:#93a0bf; --accent:#3ee0b2; --warn:#ffb020; --bad:#ff5d6c; }
+    :root { color-scheme:dark; --bg:#071018; --panel:#101826; --ink:#e8eefc; --muted:#8fa0bf; --accent:#3ee0b2; --warn:#ffb020; --bad:#ff5d6c; --line:#243049; --ok:#3ee0b2; }
     * { box-sizing:border-box; }
-    body { margin:0; font-family:Segoe UI,sans-serif; background:var(--bg); color:var(--ink); }
-    header { display:flex; gap:16px; flex-wrap:wrap; justify-content:space-between; align-items:center; padding:16px 24px; border-bottom:1px solid #243049; }
-    nav { display:flex; gap:14px; overflow-x:auto; flex:1; }
-    nav a { color:var(--muted); margin-right:14px; text-decoration:none; }
-    nav a.active, nav a:hover { color:var(--accent); }
-    main { padding:24px; display:grid; gap:16px; }
-    .card { background:var(--panel); padding:16px; border-radius:12px; }
+    body { margin:0; font-family:Segoe UI,sans-serif; background:radial-gradient(1200px 500px at 10% -10%, #123044 0%, var(--bg) 45%); color:var(--ink); }
+    header { display:flex; gap:16px; flex-wrap:wrap; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid var(--line); background:#0b1522cc; backdrop-filter:blur(8px); position:sticky; top:0; z-index:4; }
+    nav { display:flex; gap:4px; overflow-x:auto; flex:1; }
+    nav a { color:var(--muted); padding:8px 10px; border-radius:8px; text-decoration:none; white-space:nowrap; font-size:13px; }
+    nav a.active, nav a:hover { color:var(--accent); background:#123044; }
+    main { padding:20px; display:grid; gap:16px; }
+    .card { background:var(--panel); padding:16px; border-radius:14px; border:1px solid var(--line); }
+    .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+    .kpi { background:#0c1624; border:1px solid var(--line); border-radius:12px; padding:12px; }
+    .kpi b { display:block; font-size:22px; margin-top:6px; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#243049; }
+    .pill.high, .pill.critical { background:#4a1820; color:#ffb4bc; }
+    .pill.ok { background:#14352c; color:var(--ok); }
     input, select, textarea, button { padding:8px 10px; border-radius:8px; border:1px solid #31405f; background:#0f1728; color:var(--ink); }
     button { background:var(--accent); color:#06281f; font-weight:700; cursor:pointer; }
     button.danger { background:var(--bad); color:white; }
     button.secondary { background:#243049; color:var(--ink); }
     :focus-visible { outline:3px solid var(--warn); outline-offset:2px; }
-    table { width:100%; border-collapse:collapse; display:block; overflow-x:auto; }
-    th, td { text-align:left; padding:8px; border-bottom:1px solid #243049; font-size:14px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); font-size:14px; }
     .muted { color:var(--muted); }
     .warn { color:var(--warn); }
     .bad { color:var(--bad); }
-    canvas { width:100%; height:180px; background:#0f1728; border-radius:8px; }
+    canvas { width:100%; height:220px; background:#0c1624; border-radius:8px; }
     form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     form.stack { flex-direction:column; align-items:stretch; max-width:420px; }
     form.stack input, form.stack button { width:100%; }
     .session { display:flex; gap:10px; align-items:center; }
     .error { color:var(--bad); min-height:1.2em; }
     .loading { min-height:120px; display:grid; place-items:center; }
-    @media (max-width:760px) { header { align-items:flex-start; padding:12px; } main { padding:12px; } nav { order:4; flex-basis:100%; } input, select, textarea, button { max-width:100%; } }
-    @media (prefers-color-scheme:light) { :root { color-scheme:light; --bg:#f3f6fa; --panel:#fff; --ink:#142033; --muted:#5a6680; } input, select, textarea { background:white; color:var(--ink); } }
+    .timeline { display:grid; gap:10px; }
+    .timeline article { border-left:3px solid var(--accent); padding:8px 12px; background:#0c1624; }
+    a.rowlink { color:inherit; text-decoration:none; }
+    @media (max-width:760px) { header { align-items:flex-start; padding:12px; } main { padding:12px; } nav { order:4; flex-basis:100%; } input, select, textarea, button { max-width:100%; } .kpis { grid-template-columns:1fr 1fr; } }
+    @media (prefers-color-scheme:light) { :root { color-scheme:light; --bg:#f3f6fa; --panel:#fff; --ink:#142033; --muted:#5a6680; --line:#d7deea; } input, select, textarea { background:white; color:var(--ink); } body { background:var(--bg); } }
   </style>
 </head>
 <body>
@@ -53,7 +62,7 @@ export function consoleHtml(apiBase: string): string {
       ["#/webhooks","Webhooks"],["#/credentials","API credentials"],["#/users","Users"],["#/audit","Audit"],
       ["#/reports","Reports"],["#/health","System health"],["#/models","Models"],["#/optimisation","Optimisation"],["#/copilot","Copilot"],["#/profile","Profile"]
     ];
-    const state = { token: localStorage.getItem("zoltToken") || "", tenantId: localStorage.getItem("zoltTenant") || "", permissions: [], email: "", name: "", userId: "" };
+    const state = { token: localStorage.getItem("zoltToken") || "", tenantId: localStorage.getItem("zoltTenant") || "", permissions: [], email: "", name: "", userId: "", platformOperator: false };
     function headers(hasBody) {
       const h = {};
       if (hasBody) h["content-type"] = "application/json";
@@ -85,11 +94,11 @@ export function consoleHtml(apiBase: string): string {
         session.innerHTML = '<span class="muted">Signed out</span>';
         return;
       }
-      session.innerHTML = '<span id="who">'+esc(state.name || state.email || "Signed in")+(state.email && state.name ? ' <span class="muted">('+esc(state.email)+')</span>' : "")+'</span><button type="button" id="signOut" class="secondary">Sign out</button>';
+      session.innerHTML = '<span id="who">'+esc(state.name || state.email || "Signed in")+(state.email && state.name ? ' <span class="muted">('+esc(state.email)+')</span>' : "")+(state.platformOperator ? ' <span class="warn">Platform operator</span>' : "")+'</span><button type="button" id="signOut" class="secondary">Sign out</button>';
       document.getElementById("signOut").onclick = signOut;
     }
     function clearSession() {
-      state.token = ""; state.tenantId = ""; state.permissions = []; state.email = ""; state.name = ""; state.userId = "";
+      state.token = ""; state.tenantId = ""; state.permissions = []; state.email = ""; state.name = ""; state.userId = ""; state.platformOperator = false;
       localStorage.removeItem("zoltToken"); localStorage.removeItem("zoltTenant");
       document.getElementById("tenantSwitch").innerHTML = "";
     }
@@ -108,6 +117,7 @@ export function consoleHtml(apiBase: string): string {
       state.email = me.email || "";
       state.name = me.name || "";
       state.userId = me.userId || "";
+      state.platformOperator = me.platformOperator === true;
       if (me.tenantId) state.tenantId = me.tenantId;
       const memberships = await api("/v1/me/tenants");
       const select = document.getElementById("tenantSwitch");
@@ -155,7 +165,7 @@ export function consoleHtml(apiBase: string): string {
     async function render() {
       nav();
       const app = document.getElementById("app");
-      const route = location.hash || "#/login";
+      const route = (location.hash || "#/login").split("?")[0];
       try {
         app.innerHTML = card("Loading", '<p class="loading muted" role="status">Loading tenant data…</p>');
         if (route === "#/login") {
@@ -220,10 +230,25 @@ export function consoleHtml(apiBase: string): string {
         if (route === "#/command") {
           const recs = await api("/v1/recommendations?tenantId="+encodeURIComponent(state.tenantId));
           const health = await api("/v1/health/system");
-          app.innerHTML = card("Command Centre", "<p>Open recommendations: "+recs.length+"</p><pre>"+jsonHtml(health)+"</pre>");
+          const sites = await api("/v1/installations");
+          const open = recs.filter(r=>r.status==="PROPOSED");
+          const high = open.filter(r=>r.severity==="HIGH"||r.severity==="CRITICAL");
+          const recovered = recs.reduce((sum,r)=>sum+Number(r.expectedRevenue||0),0);
+          app.innerHTML = '<div class="kpis">'+
+            '<div class="kpi"><span class="muted">Sites</span><b>'+sites.length+'</b></div>'+
+            '<div class="kpi"><span class="muted">Open advisories</span><b>'+open.length+'</b></div>'+
+            '<div class="kpi"><span class="muted">High / critical</span><b>'+high.length+'</b></div>'+
+            '<div class="kpi"><span class="muted">Est. recovered revenue</span><b>'+recovered.toFixed(0)+'</b></div>'+
+            '</div>'+
+            card("Fleet command centre", "<p class='muted'>Advisory only. Predict → Optimise → Simulate → Human approve. No plant commands.</p><table><tr><th>Site</th><th>Status</th><th>Product</th></tr>"+(sites.map(r=>"<tr><td><a class='rowlink' href='#/fleet'>"+esc(r.name)+"</a></td><td><span class='pill ok'>"+esc(r.status)+"</span></td><td>"+esc(r.product?.name||"")+"</td></tr>").join("")||"<tr><td colspan=3 class=muted>No installations</td></tr>")+"</table>")+
+            card("Alarm workflow", high.map(r=>"<p><span class='pill high'>"+esc(r.severity)+"</span> "+esc(r.title)+"</p>").join("") || "<p class=muted>No high-risk alarms</p>")+
+            card("System health", "<pre>"+jsonHtml(health)+"</pre>");
         } else if (route === "#/fleet") {
           const rows = await api("/v1/installations");
-          app.innerHTML = card("Fleet / sites", "<table><tr><th>Name</th><th>Status</th><th>Product</th></tr>"+(rows.map(r=>"<tr><td>"+esc(r.name)+"</td><td>"+esc(r.status)+"</td><td>"+esc(r.product?.name||"")+"</td></tr>").join("")||"<tr><td colspan=3 class=muted>No installations</td></tr>")+"</table>");
+          const site = new URLSearchParams(location.hash.split("?")[1]||"").get("site");
+          const selected = rows.find(r=>r.id===site||r.externalKey===site||r.name===site);
+          app.innerHTML = card("Fleet / sites", "<table><tr><th>Name</th><th>Status</th><th>Product</th><th></th></tr>"+(rows.map(r=>"<tr><td>"+esc(r.name)+"</td><td><span class='pill ok'>"+esc(r.status)+"</span></td><td>"+esc(r.product?.name||"")+"</td><td><a href='#/fleet?site="+encodeURIComponent(r.id||r.name)+"'>Drill down</a></td></tr>").join("")||"<tr><td colspan=4 class=muted>No installations</td></tr>")+"</table>") +
+            (selected ? card("Site drill-down / asset health", "<p><strong>"+esc(selected.name)+"</strong> · "+esc(selected.status)+"</p><p class='muted'>Devices "+esc((selected.devices||[]).length)+" · Assets "+esc((selected.assets||[]).length)+"</p><pre>"+jsonHtml({devices:selected.devices||[], assets:selected.assets||[]})+"</pre>") : "");
         } else if (route === "#/telemetry") {
           app.innerHTML = card("Realtime telemetry", '<form id="tel"><input name="productId" placeholder="product key"/><input name="installationId" placeholder="installation key"/><button>Stream</button></form><canvas id="chart"></canvas><p id="sim" class="warn"></p><pre id="out"></pre>');
           document.getElementById("tel").onsubmit = async (e) => {
@@ -266,11 +291,11 @@ export function consoleHtml(apiBase: string): string {
           const rows = await api("/v1/models");
           app.innerHTML = card("Model monitoring", "<table><tr><th>Name</th><th>Version</th><th>Status</th></tr>"+(rows.map(r=>"<tr><td>"+esc(r.name)+"</td><td>"+esc(r.version)+"</td><td>"+esc(r.status)+"</td></tr>").join("")||"<tr><td colspan=3 class=muted>No registered models</td></tr>")+"</table>");
         } else if (route === "#/optimisation") {
-          app.innerHTML = card("Advisory optimisation", '<form id="opt"><input name="forecastKw" placeholder="forecast kW"/><input name="exportLimitKw" placeholder="export limit"/><input name="loadKw" placeholder="load kW"/><button>Optimise</button></form><pre id="out"></pre><p class="muted">Advisory only. No plant dispatch.</p>');
-          document.getElementById("opt").onsubmit = async (e) => { e.preventDefault(); const fd=new FormData(e.target); const data=await api("/v1/optimisation",{method:"POST",body:JSON.stringify(Object.fromEntries(fd))}); document.getElementById("out").textContent=JSON.stringify(data,null,2); };
+          app.innerHTML = card("Predict → Optimise → Simulate", '<form id="opt"><input name="forecastKw" placeholder="forecast kW"/><input name="exportLimitKw" placeholder="export limit"/><input name="loadKw" placeholder="load kW"/><button>Simulate plan</button></form><pre id="out"></pre><p class="muted">Human approval required. Automatic plant execution is outside this release.</p>');
+          document.getElementById("opt").onsubmit = async (e) => { e.preventDefault(); const fd=new FormData(e.target); const data=await api("/v1/simulate",{method:"POST",body:JSON.stringify(Object.fromEntries(fd))}); document.getElementById("out").textContent=JSON.stringify(data,null,2); };
         } else if (route === "#/recommendations") {
           const recs = await api("/v1/recommendations?tenantId="+encodeURIComponent(state.tenantId));
-          app.innerHTML = card("Recommendations", recs.map(r => '<article class="card"><h3>'+esc(r.title)+'</h3><p>'+esc(r.summary)+'</p><p>Severity '+esc(r.severity)+' · confidence '+(Number(r.confidence)*100).toFixed(0)+'%</p><p>'+esc(r.rationale)+'</p><p class="muted">Assumptions: '+esc((r.assumptions||[]).join("; "))+'</p><p class="warn">'+esc((r.dataQualityWarnings||[]).join("; "))+'</p><button data-id="'+esc(r.id)+'" data-status="ACKNOWLEDGED">Acknowledge</button> <button data-id="'+esc(r.id)+'" data-status="APPROVED">Approve</button> <button class="danger" data-id="'+esc(r.id)+'" data-status="REJECTED">Reject</button></article>').join("") || "<p class=muted>No recommendations</p>");
+          app.innerHTML = card("Recommendation timeline", '<div class="timeline">'+(recs.map(r => '<article><p class="muted">'+esc(r.createdAt||"")+' · <span class="pill '+esc(String(r.severity||"").toLowerCase())+'">'+esc(r.severity)+'</span> · '+esc(r.status)+'</p><h3>'+esc(r.title)+'</h3><p>'+esc(r.summary)+'</p><p>confidence '+(Number(r.confidence)*100).toFixed(0)+'% · est. revenue '+esc(r.expectedRevenue||0)+'</p><p>'+esc(r.rationale)+'</p><p class="muted">Assumptions: '+esc((r.assumptions||[]).join("; "))+'</p><p class="warn">'+esc((r.dataQualityWarnings||[]).join("; "))+'</p><button data-id="'+esc(r.id)+'" data-status="ACKNOWLEDGED">Acknowledge</button> <button data-id="'+esc(r.id)+'" data-status="APPROVED">Approve</button> <button class="danger" data-id="'+esc(r.id)+'" data-status="REJECTED">Reject</button></article>').join("") || "<p class=muted>No recommendations</p>")+"</div>");
           app.querySelectorAll("button[data-id]").forEach(btn => btn.onclick = async () => {
             const comment = prompt("Decision comment") || "";
             await api("/v1/recommendations/"+btn.dataset.id+"/status", { method:"PATCH", body: JSON.stringify({ tenantId: state.tenantId, status: btn.dataset.status, comment }) });
@@ -315,7 +340,7 @@ export function consoleHtml(apiBase: string): string {
           };
         } else if (route === "#/profile") {
           const me=await api("/v1/me"); const sessions=await api("/v1/me/sessions");
-          app.innerHTML=card("Profile and sessions","<p>Signed in as <strong>"+esc(me.name||me.email||me.userId||"user")+"</strong></p><p class='muted'>"+esc(me.email||"")+" · Tenant "+esc(me.tenantId)+" · MFA "+(me.mfaEnabled?"enabled":"not enabled")+"</p><table><tr><th>Device</th><th>IP</th><th>Last seen</th><th></th></tr>"+(sessions.map(session=>"<tr><td>"+esc(session.deviceName||session.userAgent||"Unknown")+"</td><td>"+esc(session.ipAddress||"")+"</td><td>"+esc(session.lastSeenAt)+"</td><td><button class='danger' data-session='"+esc(session.id)+"'>Revoke</button></td></tr>").join("")||"<tr><td colspan=4 class=muted>No active sessions</td></tr>")+"</table><p><button id='signOutHere' class='secondary'>Sign out this device</button> <button id='logoutAll' class='danger'>Sign out all sessions</button></p>");
+          app.innerHTML=card("Profile and sessions","<p>Signed in as <strong>"+esc(me.name||me.email||me.userId||"user")+"</strong></p><p class='muted'>"+esc(me.email||"")+" · Tenant "+esc(me.tenantId)+" · MFA "+(me.mfaEnabled?"enabled":"not enabled")+(me.platformOperator?" · Platform operator with access to every tenant":"")+"</p><table><tr><th>Device</th><th>IP</th><th>Last seen</th><th></th></tr>"+(sessions.map(session=>"<tr><td>"+esc(session.deviceName||session.userAgent||"Unknown")+"</td><td>"+esc(session.ipAddress||"")+"</td><td>"+esc(session.lastSeenAt)+"</td><td><button class='danger' data-session='"+esc(session.id)+"'>Revoke</button></td></tr>").join("")||"<tr><td colspan=4 class=muted>No active sessions</td></tr>")+"</table><p><button id='signOutHere' class='secondary'>Sign out this device</button> <button id='logoutAll' class='danger'>Sign out all sessions</button></p>");
           app.querySelectorAll("button[data-session]").forEach(btn=>btn.onclick=async()=>{await api("/v1/me/sessions/"+encodeURIComponent(btn.dataset.session),{method:"DELETE"});render();});
           document.getElementById("signOutHere").onclick=signOut;
           document.getElementById("logoutAll").onclick=async()=>{try{await api("/v1/me/sessions",{method:"DELETE"});}catch{} clearSession(); location.hash="#/login"; nav(); render();};

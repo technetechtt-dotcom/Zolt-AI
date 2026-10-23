@@ -1,0 +1,8 @@
+{
+  "executedAt": "2026-10-23T11:15:30.000Z",
+  "result": "BLOCKED",
+  "advisoryOnly": true,
+  "plantCommands": false,
+  "namedSite": null,
+  "reason": "No customer site, GridFlex Edge Node, or USB-RS485 inverter path is attached to this workstation. Chaos recovery now PASSes locally; physical HIL, managed secrets, independent pentest and real-data gates remain required before a controlled advisory-only pilot."
+}

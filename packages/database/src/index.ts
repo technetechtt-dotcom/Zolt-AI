@@ -1,4 +1,4 @@
-export { prisma } from "./client.js";
+export { prisma, pingDatabase } from "./client.js";
 export {
   ensureInstallationIdentity,
   resolveInstallationIdentity,
@@ -68,6 +68,13 @@ export {
   unlockAccount,
   verifyEmail,
 } from "./repositories/users.js";
+export {
+  DEFAULT_DEVELOPER_EMAIL,
+  ensurePlatformDeveloperAccount,
+  grantPlatformOperatorOnAllTenants,
+  syncPlatformOperatorsToTenant,
+  userIsPlatformOperator,
+} from "./repositories/platform-operators.js";
 export {
   archiveExpiredRecommendations,
   hasInstallationAccess,
