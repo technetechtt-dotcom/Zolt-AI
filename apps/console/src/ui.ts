@@ -32,6 +32,7 @@ export function consoleHtml(apiBase: string): string {
     .warn { color:var(--warn); }
     .bad { color:var(--bad); }
     canvas { width:100%; height:220px; background:#0c1624; border-radius:8px; }
+    svg.one-line { width:100%; height:220px; background:#0c1624; border-radius:8px; }
     form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     form.stack { flex-direction:column; align-items:stretch; max-width:420px; }
     form.stack input, form.stack button { width:100%; }
@@ -110,6 +111,25 @@ export function consoleHtml(apiBase: string): string {
       render();
     }
     function card(title, body) { return '<section class="card"><h2>'+title+'</h2>'+body+'</section>'; }
+    function oneLine(topo) {
+      const assets = (topo && topo.assets) || [];
+      if (!assets.length) return "<p class='muted'>No live topology yet. Connect a named plant to populate inverters, meters, batteries and the export point.</p>";
+      const width = Math.max(640, assets.length * 88);
+      const pos = {};
+      const nodes = assets.map((asset, index) => {
+        const x = 50 + (index % 8) * 80;
+        const y = 36 + Math.floor(index / 8) * 78;
+        pos[asset.id] = { x, y };
+        const color = asset.degraded ? "var(--bad)" : "var(--accent)";
+        return '<g><circle cx="'+x+'" cy="'+y+'" r="18" fill="#0c1624" stroke="'+color+'"/><text x="'+x+'" y="'+(y+3)+'" text-anchor="middle" font-size="9" fill="currentColor">'+esc(asset.type)+'</text><text x="'+x+'" y="'+(y+34)+'" text-anchor="middle" font-size="8" fill="var(--muted)">'+esc(asset.id)+'</text></g>';
+      }).join("");
+      const edges = ((topo && topo.topology) || []).map((edge) => {
+        const from = pos[edge.from]; const to = pos[edge.to];
+        if (!from || !to) return "";
+        return '<line x1="'+from.x+'" y1="'+from.y+'" x2="'+to.x+'" y2="'+to.y+'" stroke="#3ee0b255"/>';
+      }).join("");
+      return '<svg class="one-line" viewBox="0 0 '+width+' 220" role="img" aria-label="Site one-line diagram">'+edges+nodes+'</svg>';
+    }
     async function hydrateIdentity() {
       if (!state.token) return;
       const me = await api("/v1/me");
@@ -242,6 +262,8 @@ export function consoleHtml(apiBase: string): string {
             '<div class="kpi"><span class="muted">Critical alerts</span><b>'+esc(centre.criticalAlerts)+'</b></div>'+
             '<div class="kpi"><span class="muted">Open incidents</span><b>'+esc(centre.openIncidents)+'</b></div>'+
             '<div class="kpi"><span class="muted">Est. recovered</span><b>'+Number(centre.estimatedRevenueRecovered||0).toFixed(0)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Energy lost MWh</span><b>'+(centre.energyLostMwh==null?"n/a":centre.energyLostMwh)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Revenue at risk</span><b>'+(centre.revenueAtRisk==null?"n/a":centre.revenueAtRisk)+'</b></div>'+
             '</div>'+
             card("Fleet command centre", "<p class='muted'>Advisory only. Predict → Optimise → Simulate → Human approve. No plant commands. Live MW stays n/a until a named plant publishes telemetry.</p><table><tr><th>Site</th><th>Status</th><th>Product</th></tr>"+(sites.map(r=>"<tr><td><a class='rowlink' href='#/fleet?site="+encodeURIComponent(r.id||r.name)+"'>"+esc(r.name)+"</a></td><td><span class='pill ok'>"+esc(r.status)+"</span></td><td>"+esc(r.product?.name||"")+"</td></tr>").join("")||"<tr><td colspan=3 class=muted>No installations</td></tr>")+"</table>")+
             card("Alarm workflow", high.map(r=>"<p><span class='pill high'>"+esc(r.severity)+"</span> "+esc(r.title)+"</p>").join("") || "<p class=muted>No high-risk alarms</p>")+
@@ -251,7 +273,16 @@ export function consoleHtml(apiBase: string): string {
           const site = new URLSearchParams(location.hash.split("?")[1]||"").get("site");
           const selected = rows.find(r=>r.id===site||r.externalKey===site||r.name===site);
           app.innerHTML = card("Fleet / sites", "<table><tr><th>Name</th><th>Status</th><th>Product</th><th></th></tr>"+(rows.map(r=>"<tr><td>"+esc(r.name)+"</td><td><span class='pill ok'>"+esc(r.status)+"</span></td><td>"+esc(r.product?.name||"")+"</td><td><a href='#/fleet?site="+encodeURIComponent(r.id||r.name)+"'>Drill down</a></td></tr>").join("")||"<tr><td colspan=4 class=muted>No installations</td></tr>")+"</table>") +
-            (selected ? card("Site drill-down", "<p><strong>"+esc(selected.name)+"</strong> · "+esc(selected.status)+"</p><p class='muted'>Overview · topology · live power · inverter fleet · meter · battery · export point · weather · curtailment · recommendations · alerts · connectivity</p><p>Devices "+esc((selected.devices||[]).length)+" · Assets "+esc((selected.assets||[]).length)+"</p><pre>"+jsonHtml({topology:selected.topology||null, devices:selected.devices||[], assets:selected.assets||[]})+"</pre>") : "");
+            (selected ? card("Site drill-down", "<p><strong>"+esc(selected.name)+"</strong> · "+esc(selected.status)+"</p><p class='muted'>Live power · forecast · curtailment · export constraint · inverter health · alarms · recommendations · connectivity · weather</p><p>Devices "+esc((selected.devices||[]).length)+" · Assets "+esc((selected.assets||[]).length)+"</p><div id='oneLine'><p class='muted'>Loading topology…</p></div><pre>"+jsonHtml({devices:selected.devices||[], assets:selected.assets||[]})+"</pre>") : "");
+          if (selected) {
+            api("/v1/installations/"+encodeURIComponent(selected.id)+"/topology").then((topo) => {
+              const mount = document.getElementById("oneLine");
+              if (mount) mount.innerHTML = oneLine(topo);
+            }).catch(() => {
+              const mount = document.getElementById("oneLine");
+              if (mount) mount.innerHTML = "<p class='muted'>Topology unavailable until assets exist.</p>";
+            });
+          }
         } else if (route === "#/telemetry") {
           app.innerHTML = card("Realtime telemetry", '<form id="tel"><input name="productId" placeholder="product key"/><input name="installationId" placeholder="installation key"/><button>Stream</button></form><canvas id="chart"></canvas><p id="sim" class="warn"></p><pre id="out"></pre>');
           document.getElementById("tel").onsubmit = async (e) => {
@@ -334,8 +365,9 @@ export function consoleHtml(apiBase: string): string {
             render();
           });
         } else if (route === "#/alerts") {
-          const recs = await api("/v1/recommendations?tenantId="+encodeURIComponent(state.tenantId)+"&status=PROPOSED");
-          app.innerHTML = card("Alerts centre", recs.filter(r=>r.severity==="HIGH"||r.severity==="CRITICAL").map(r=>"<p><strong>"+esc(r.severity)+"</strong> "+esc(r.title)+' <button data-alert-incident="'+esc(r.id)+'">Open incident</button></p>').join("") || "<p class=muted>No high-risk alerts</p>");
+          const payload = await api("/v1/alerts");
+          app.innerHTML = card("Operational alerts", "<p class='muted'>"+esc(payload.note||"Alerts describe events; recommendations describe suggested actions.")+"</p>"+((payload.alerts||[]).map(r=>"<p><span class='pill high'>"+esc(r.severity||r.status||"OPEN")+"</span> "+esc(r.title||r.id)+"</p>").join("") || "<p class=muted>No open operational alerts</p>")) +
+            card("Linked high-risk recommendations", (payload.recommendations||[]).map(r=>"<p><strong>"+esc(r.severity)+"</strong> "+esc(r.title)+' <button data-alert-incident="'+esc(r.id)+'">Open incident</button></p>').join("") || "<p class=muted>No linked recommendations</p>");
           app.querySelectorAll("button[data-alert-incident]").forEach(btn => btn.onclick = async () => {
             await api("/v1/incidents", { method:"POST", body: JSON.stringify({ title: "Alert "+btn.dataset.alertIncident, severity: "HIGH", recommendationIds: [btn.dataset.alertIncident] }) });
             location.hash = "#/incidents";
@@ -373,15 +405,34 @@ export function consoleHtml(apiBase: string): string {
           const health = await api("/v1/health/system"); const queues = await api("/v1/queues/health");
           app.innerHTML = card("System / queue / connector health", "<pre>"+jsonHtml({health,queues})+"</pre>");
         } else if (route === "#/copilot") {
-          app.innerHTML = card("Zolt Copilot", '<form id="ask"><textarea name="question" rows="4" placeholder="Ask about a site, device, telemetry or recommendation"></textarea><button>Ask</button></form><pre id="out"></pre>');
+          app.innerHTML = card("Zolt Copilot", '<form id="ask"><textarea name="question" rows="4" placeholder="Ask a site-specific question. Operational answers require citations."></textarea><button>Ask</button></form><div id="copilotAnswer"></div><p class="muted">This assistant cannot issue plant commands. Important claims must cite telemetry, a recommendation ID, an incident or a model output.</p>');
           document.getElementById("ask").onsubmit = async (e) => {
             e.preventDefault(); const fd = new FormData(e.target);
-            const data = await api("/v1/copilot/ask", { method:"POST", body: JSON.stringify({ question: fd.get("question") }) });
-            document.getElementById("out").textContent = JSON.stringify(data,null,2);
+            try {
+              const data = await api("/v1/copilot/ask", { method:"POST", body: JSON.stringify({ question: fd.get("question") }) });
+              document.getElementById("copilotAnswer").innerHTML = "<p>"+esc(data.answer)+"</p>"+card("Citations", (data.citations||[]).map(c=>"<p><code>"+esc(c.id)+"</code> "+esc(c.title)+"</p>").join("") || "<p class='warn'>No citations returned; do not treat this as an operational fact.</p>");
+            } catch (error) {
+              document.getElementById("copilotAnswer").innerHTML = "<p class='bad' role='alert'>"+esc(error.message)+"</p>";
+            }
           };
         } else if (route === "#/profile") {
           const me=await api("/v1/me"); const sessions=await api("/v1/me/sessions");
-          app.innerHTML=card("Profile and sessions","<p>Signed in as <strong>"+esc(me.name||me.email||me.userId||"user")+"</strong></p><p class='muted'>"+esc(me.email||"")+" · Tenant "+esc(me.tenantId)+" · MFA "+(me.mfaEnabled?"enabled":"not enabled")+(me.platformOperator?" · Platform operator with access to every tenant":"")+"</p><table><tr><th>Device</th><th>IP</th><th>Last seen</th><th></th></tr>"+(sessions.map(session=>"<tr><td>"+esc(session.deviceName||session.userAgent||"Unknown")+"</td><td>"+esc(session.ipAddress||"")+"</td><td>"+esc(session.lastSeenAt)+"</td><td><button class='danger' data-session='"+esc(session.id)+"'>Revoke</button></td></tr>").join("")||"<tr><td colspan=4 class=muted>No active sessions</td></tr>")+"</table><p><button id='signOutHere' class='secondary'>Sign out this device</button> <button id='logoutAll' class='danger'>Sign out all sessions</button></p>");
+          app.innerHTML=card("Profile and sessions","<p>Signed in as <strong>"+esc(me.name||me.email||me.userId||"user")+"</strong></p><p class='muted'>"+esc(me.email||"")+" · Tenant "+esc(me.tenantId)+" · MFA "+(me.mfaEnabled?"enabled":"not enabled")+(me.platformOperator?" · Platform operator":"")+"</p><table><tr><th>Device</th><th>IP</th><th>Last seen</th><th></th></tr>"+(sessions.map(session=>"<tr><td>"+esc(session.deviceName||session.userAgent||"Unknown")+"</td><td>"+esc(session.ipAddress||"")+"</td><td>"+esc(session.lastSeenAt)+"</td><td><button class='danger' data-session='"+esc(session.id)+"'>Revoke</button></td></tr>").join("")||"<tr><td colspan=4 class=muted>No active sessions</td></tr>")+"</table><p><button id='signOutHere' class='secondary'>Sign out this device</button> <button id='logoutAll' class='danger'>Sign out all sessions</button></p>")+
+            (me.platformOperator ? card("Just-in-time / break-glass access", '<form id="elevate" class="stack"><label>Tenant ID <input name="tenantId" placeholder="optional tenant scope"/></label><label>Reason <input name="reason" required minlength="12" placeholder="Why elevated access is required"/></label><label>Minutes <input name="minutes" type="number" value="60" min="15" max="240"/></label><button>Request JIT elevation</button> <button type="button" id="breakGlassBtn" class="danger">Break-glass</button><p id="elevateMsg" class="muted" role="status"></p></form><p class="muted">Production platform-operator sessions expire in 2 hours. Elevation is audited and is not a permanent grant.</p>') : "");
+          if (me.platformOperator) {
+            const elevateMsg = () => document.getElementById("elevateMsg");
+            document.getElementById("elevate").onsubmit = async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              const grant = await api("/v1/platform/elevate", { method:"POST", body: JSON.stringify({ tenantId: fd.get("tenantId") || undefined, reason: fd.get("reason"), minutes: Number(fd.get("minutes")||60) }) });
+              elevateMsg().textContent = "JIT granted until " + (grant.until ? new Date(grant.until).toISOString() : "expiry");
+            };
+            document.getElementById("breakGlassBtn").onclick = async () => {
+              const fd = new FormData(document.getElementById("elevate"));
+              const grant = await api("/v1/platform/break-glass", { method:"POST", body: JSON.stringify({ tenantId: fd.get("tenantId") || undefined, reason: fd.get("reason"), minutes: 30 }) });
+              elevateMsg().textContent = "Break-glass granted until " + (grant.until ? new Date(grant.until).toISOString() : "expiry") + ". Post-use review is required.";
+            };
+          }
           app.querySelectorAll("button[data-session]").forEach(btn=>btn.onclick=async()=>{await api("/v1/me/sessions/"+encodeURIComponent(btn.dataset.session),{method:"DELETE"});render();});
           document.getElementById("signOutHere").onclick=signOut;
           document.getElementById("logoutAll").onclick=async()=>{try{await api("/v1/me/sessions",{method:"DELETE"});}catch{} clearSession(); location.hash="#/login"; nav(); render();};

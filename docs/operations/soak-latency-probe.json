@@ -1,0 +1,51 @@
+{
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T12:17:28.434Z",
+  "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
+  "environment": "local",
+  "operator": "soak-harness",
+  "target": "http://localhost:4001/v1/ingest/gridflex",
+  "simulated": true,
+  "tier": "10",
+  "deviceCount": 10,
+  "messagesPerDevice": 20,
+  "soakMinutes": 0,
+  "trafficProfile": "steady",
+  "reconnectEvery": 0,
+  "reconnectPauseMs": 500,
+  "reconnectBursts": 0,
+  "aborted": false,
+  "failureThreshold": 0.001,
+  "messages": 200,
+  "successful": 200,
+  "failed": 0,
+  "durationMs": 12988.03,
+  "messagesPerSecond": 15.4,
+  "latencyMs": {
+    "p50": 15.73,
+    "p95": 3528.4,
+    "p99": 11166.97
+  },
+  "p95BudgetMs": 5000,
+  "statusCodes": {
+    "202": 200
+  },
+  "resources": {
+    "inconclusive": true
+  },
+  "latestSample": {
+    "at": "2026-10-26T12:17:27.809Z",
+    "rssMb": 51.1,
+    "heapUsedMb": 16.6,
+    "apiReady": true,
+    "workerReady": true
+  },
+  "passCriteria": {
+    "ok": false,
+    "failures": [
+      "p95",
+      "p99"
+    ]
+  },
+  "inProgress": false
+}

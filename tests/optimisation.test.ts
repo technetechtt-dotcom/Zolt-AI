@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { optimiseSite } from "../packages/optimisation/src/index.js";
+import {
+  benchmarkStrategies,
+  optimiseSite,
+} from "../packages/optimisation/src/index.js";
 import {
   greedyHorizon,
   optimiseHorizon,
@@ -66,6 +69,21 @@ describe("operational optimisation", () => {
     expect(plan.steps.every((step) => step.simulatedSocPct <= 90)).toBe(true);
     expect(greedy.advisoryOnly).toBe(true);
     expect(plan.improvementVsGreedy).toBeGreaterThan(0);
+    const strategies = benchmarkStrategies({
+      forecastKw: 200,
+      exportLimitKw: 80,
+      loadKw: 40,
+      batterySocPct: 40,
+      batteryPowerKw: 50,
+      hydrogenCapacityKgPerHour: 1,
+      tariff: 1.5,
+      batteryCapacityKwh: 120,
+      economics: { roundTripEfficiency: 0.9, cycleCostPerMwh: 40, maxCRate: 0.8 },
+    });
+    expect(strategies.zolt.recoveredEnergyKwh).toBeGreaterThanOrEqual(
+      strategies["no-action"].recoveredEnergyKwh,
+    );
+    expect(strategies["offline-optimum"].advisoryOnly).toBe(true);
     expect(
       plan.recoveredEnergyKwh + plan.estimatedRevenueImpact * 0.25,
     ).toBeGreaterThan(

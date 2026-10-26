@@ -18,7 +18,18 @@ export interface ModelCard {
   explainability?: Record<string, unknown>;
   intendedUse?: string;
   limitations?: string[];
-  safetyThresholds?: { maximumDrift?: number; maximumError?: number };
+  safetyThresholds?: {
+    maximumDrift?: number;
+    maximumError?: number;
+    disablementThreshold?: number;
+  };
+  datasetVersion?: string;
+  features?: string[];
+  trainingDates?: { startedAt?: string; completedAt?: string };
+  deploymentStatus?: "not-deployed" | "shadow" | "canary" | "production";
+  rollbackPoint?: string;
+  disablementThreshold?: number;
+  modelCard?: string;
   metadata: Record<string, unknown>;
 }
 
@@ -135,4 +146,78 @@ export function listPredictionAudit(
     .filter((row) => row.tenantId === tenantId)
     .slice(-limit)
     .reverse();
+}
+
+export function evaluateChallenger(input: {
+  name: string;
+  championVersion: string;
+  challengerVersion: string;
+  tenantId?: string;
+  metric?: string;
+}): {
+  promote: boolean;
+  metric: string;
+  champion: number;
+  challenger: number;
+  reason: string;
+} {
+  const champion = getModel(input.name, input.championVersion, input.tenantId);
+  const challenger = getModel(
+    input.name,
+    input.challengerVersion,
+    input.tenantId,
+  );
+  if (!champion || champion.status !== "champion") {
+    throw new Error("CHAMPION_NOT_FOUND");
+  }
+  if (!challenger || challenger.status !== "challenger") {
+    throw new Error("CHALLENGER_NOT_FOUND");
+  }
+  const metric = input.metric ?? "mae";
+  const championValue = Number(champion.evaluation?.[metric] ?? Number.POSITIVE_INFINITY);
+  const challengerValue = Number(
+    challenger.evaluation?.[metric] ?? Number.POSITIVE_INFINITY,
+  );
+  const promote = challengerValue < championValue;
+  return {
+    promote,
+    metric,
+    champion: championValue,
+    challenger: challengerValue,
+    reason: promote
+      ? "challenger improves the champion metric"
+      : "challenger does not beat the champion",
+  };
+}
+
+export function detectAutomatedDrift(input: {
+  name: string;
+  version: string;
+  tenantId?: string;
+  featureDrift?: Record<string, number>;
+  predictionDrift?: number;
+  residualMean?: number;
+  residualStd?: number;
+  forecastBias?: number;
+  anomalyRate?: number;
+  baselineAnomalyRate?: number;
+}): ModelCard {
+  const maxFeature = Math.max(
+    0,
+    ...Object.values(input.featureDrift ?? { _: 0 }),
+  );
+  const anomalyShift = Math.abs(
+    (input.anomalyRate ?? 0) - (input.baselineAnomalyRate ?? 0),
+  );
+  return updateModelDrift({
+    name: input.name,
+    version: input.version,
+    tenantId: input.tenantId,
+    dataDrift: Math.max(maxFeature, Math.abs(input.forecastBias ?? 0)),
+    predictionDrift: Math.max(
+      input.predictionDrift ?? 0,
+      Math.abs(input.residualMean ?? 0) + (input.residualStd ?? 0) / 10,
+    ),
+    performanceError: anomalyShift,
+  });
 }

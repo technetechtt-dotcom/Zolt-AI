@@ -82,6 +82,9 @@ importers:
       '@zolt/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@zolt/twin':
+        specifier: workspace:*
+        version: link:../../packages/twin
       fastify:
         specifier: ^5.2.0
         version: 5.11.0

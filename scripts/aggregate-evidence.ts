@@ -1,33 +1,11 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { interpretEvidence, parseEvidenceJson } from "./lib/evidence.js";
 
 interface EvidenceRow {
   file: string;
-  result?: string;
-  inProgress?: boolean;
-  aborted?: boolean;
-  recovered?: boolean;
-  queuedTelemetrySurvived?: boolean | null;
-  messages?: number;
-  successful?: number;
-  failed?: number;
-  status?: string;
-  blockedReason?: string;
-}
-
-function statusOf(row: EvidenceRow): string {
-  if (row.aborted) return "ABORTED";
-  if (row.inProgress) return "IN_PROGRESS";
-  if (row.blockedReason) return "BLOCKED";
-  if (row.result) return String(row.result).toUpperCase();
-  if (row.status) return String(row.status).toUpperCase();
-  if (row.recovered === false) return "FAIL";
-  if (row.queuedTelemetrySurvived === false) return "FAIL";
-  if (typeof row.messages === "number" && row.successful === 0 && row.messages > 0) {
-    return "FAIL";
-  }
-  if (typeof row.successful === "number" && row.failed === 0) return "PASS";
-  return "UNKNOWN";
+  status: string;
+  notes: string;
 }
 
 async function main(): Promise<void> {
@@ -36,32 +14,15 @@ async function main(): Promise<void> {
   const rows: EvidenceRow[] = [];
   for (const file of files) {
     try {
-      const parsed = JSON.parse(await readFile(join(dir, file), "utf8")) as Record<
-        string,
-        unknown
-      >;
-      const run = Array.isArray(parsed.runs)
-        ? (parsed.runs as Array<Record<string, unknown>>).find(
-            (item) => item.target === "redis",
-          ) ?? parsed
-        : parsed;
+      const parsed = parseEvidenceJson(await readFile(join(dir, file)));
+      const interpreted = interpretEvidence(file, parsed);
+      rows.push({ file, status: interpreted.status, notes: interpreted.notes });
+    } catch (error) {
       rows.push({
         file,
-        result: parsed.result as string | undefined,
-        inProgress: parsed.inProgress as boolean | undefined,
-        aborted: parsed.aborted as boolean | undefined,
-        recovered: run.recovered as boolean | undefined,
-        queuedTelemetrySurvived: run.queuedTelemetrySurvived as boolean | null,
-        messages: parsed.messages as number | undefined,
-        successful: parsed.successful as number | undefined,
-        failed: parsed.failed as number | undefined,
-        status: (parsed.status as string | undefined) ?? (parsed.gate as string | undefined),
-        blockedReason:
-          (parsed.blockedReason as string | undefined) ??
-          (parsed.reason as string | undefined),
+        status: "UNREADABLE",
+        notes: error instanceof Error ? error.message : "parse failed",
       });
-    } catch {
-      rows.push({ file, result: "UNREADABLE" });
     }
   }
 
@@ -76,18 +37,20 @@ async function main(): Promise<void> {
     "| --- | --- | --- |",
   ];
   for (const row of rows.sort((a, b) => a.file.localeCompare(b.file))) {
-    const notes = [
-      row.messages !== undefined ? `${row.successful ?? 0}/${row.messages} ok` : "",
-      row.queuedTelemetrySurvived === false ? "queue loss" : "",
-      row.blockedReason ?? "",
-    ]
-      .filter(Boolean)
-      .join("; ");
-    lines.push(`| \`${row.file}\` | ${statusOf(row)} | ${notes} |`);
+    lines.push(
+      `| \`${row.file}\` | ${row.status} | ${row.notes.replaceAll("|", "/")} |`,
+    );
   }
 
   const blockers = rows.filter((row) =>
-    ["FAIL", "BLOCKED", "ABORTED", "UNREADABLE"].includes(statusOf(row)),
+    [
+      "FAIL",
+      "BLOCKED",
+      "ABORTED",
+      "UNREADABLE",
+      "NOT_COMMISSIONED",
+      "NO-GO",
+    ].includes(row.status),
   );
   lines.push(
     "",
@@ -118,8 +81,14 @@ async function main(): Promise<void> {
     "docs/operations/evidence-summary.json",
     `${JSON.stringify(
       {
+        evidenceVersion: 1,
         generatedAt: new Date().toISOString(),
-        artifacts: rows.map((row) => ({ file: row.file, status: statusOf(row) })),
+        result: "META",
+        artifacts: rows.map((row) => ({
+          file: row.file,
+          status: row.status,
+          notes: row.notes,
+        })),
         failing: blockers.map((row) => row.file),
       },
       null,

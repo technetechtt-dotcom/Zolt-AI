@@ -31,6 +31,7 @@ import {
   metrics,
 } from "@zolt/observability";
 import { validateTelemetryEnvelope } from "@zolt/core";
+import { completeSiteTopology } from "@zolt/twin";
 
 export interface ApiDependencies {
   enqueueTelemetry: (envelope: ZoltTelemetryEnvelope) => Promise<void>;
@@ -66,6 +67,13 @@ export interface ApiDependencies {
     assignedToId?: string;
     comment?: string;
     actorId?: string;
+  }) => Promise<unknown>;
+  requestPrivilegedAccess?: (input: {
+    userId: string;
+    tenantId?: string;
+    reason: string;
+    minutes?: number;
+    kind?: "jit" | "break-glass";
   }) => Promise<unknown>;
   saveRecommendations: (recommendations: ZoltRecommendation[]) => Promise<void>;
   listRecommendations: (input: {
@@ -865,6 +873,58 @@ export function buildApiApp(
         });
       } catch {
         return reply.code(403).send({ code: "TENANT_MISMATCH" });
+      }
+    },
+  );
+
+  app.post(
+    "/v1/platform/elevate",
+    { preHandler: [requireApiKey] },
+    async (req, reply) => {
+      if (!req.zoltAuth?.unscoped || !req.zoltAuth.userId) {
+        return reply.code(403).send({ code: "PLATFORM_OPERATOR_REQUIRED" });
+      }
+      const body = req.body as Record<string, unknown>;
+      try {
+        return (
+          (await dependencies.requestPrivilegedAccess?.({
+            userId: req.zoltAuth.userId,
+            tenantId: body.tenantId ? String(body.tenantId) : undefined,
+            reason: String(body.reason ?? ""),
+            minutes: body.minutes ? Number(body.minutes) : 60,
+            kind: "jit",
+          })) ?? { accepted: false }
+        );
+      } catch (error) {
+        return reply
+          .code(400)
+          .send({ code: error instanceof Error ? error.message : "ELEVATION_FAILED" });
+      }
+    },
+  );
+
+  app.post(
+    "/v1/platform/break-glass",
+    { preHandler: [requireApiKey] },
+    async (req, reply) => {
+      if (!req.zoltAuth?.unscoped || !req.zoltAuth.userId) {
+        return reply.code(403).send({ code: "PLATFORM_OPERATOR_REQUIRED" });
+      }
+      const body = req.body as Record<string, unknown>;
+      try {
+        return (
+          (await dependencies.requestPrivilegedAccess?.({
+            userId: req.zoltAuth.userId,
+            tenantId: body.tenantId ? String(body.tenantId) : undefined,
+            reason: String(body.reason ?? ""),
+            minutes: Math.min(120, Number(body.minutes ?? 30)),
+            kind: "break-glass",
+          })) ?? { accepted: false }
+        );
+      } catch (error) {
+        return reply
+          .code(400)
+          .send({ code: error instanceof Error ? error.message : "BREAK_GLASS_FAILED" });
       }
     },
   );
@@ -1738,8 +1798,76 @@ export function buildApiApp(
         gridExportMw: null,
         curtailmentMw: null,
         energyLostMwh: null,
+        revenueAtRisk: null,
         note: "Live MW figures require named plant telemetry. Null means not measured.",
       };
+    },
+  );
+
+  app.get(
+    "/v1/alerts",
+    { preHandler: [requireApiKey, requirePermission("recommendation:read")] },
+    async (req) => {
+      const tenantId = req.zoltAuth!.tenantId;
+      const [incidents, recs] = await Promise.all([
+        dependencies.listIncidents?.({ tenantId }) ?? [],
+        dependencies.listRecommendations({
+          tenantId,
+          unrestricted: unrestrictedInstallationAccess(req.zoltAuth!),
+          userId: req.zoltAuth?.userId,
+        }),
+      ]);
+      return {
+        alerts: (await Promise.resolve(incidents)).map((row) => ({
+          kind: "incident",
+          ...(row as Record<string, unknown>),
+        })),
+        recommendations: recs.filter(
+          (row) => row.severity === "HIGH" || row.severity === "CRITICAL",
+        ),
+        note: "Alerts are operational events. Recommendations are suggested actions. They are linked but managed separately.",
+      };
+    },
+  );
+
+  app.get(
+    "/v1/installations/:id/topology",
+    { preHandler: [requireApiKey, requirePermission("telemetry:read")] },
+    async (req, reply) => {
+      const tenantId = req.zoltAuth!.tenantId;
+      const sites =
+        (await dependencies.listInstallations?.(
+          tenantId,
+          req.zoltAuth?.userId,
+          unrestrictedInstallationAccess(req.zoltAuth!),
+        )) ?? [];
+      const id = String((req.params as { id: string }).id);
+      const site = (sites as Array<Record<string, unknown>>).find(
+        (row) =>
+          row.id === id || row.externalKey === id || row.name === id,
+      );
+      if (!site) return reply.code(404).send({ code: "INSTALLATION_NOT_FOUND" });
+      const assets = (site.assets as Array<Record<string, unknown>> | undefined) ?? [];
+      return completeSiteTopology({
+        tenantId,
+        installationId: String(site.id ?? id),
+        inverters: assets
+          .filter((asset) => String(asset.type ?? "").toLowerCase().includes("inverter"))
+          .map((asset) => ({
+            id: String(asset.id ?? asset.externalRef ?? "inverter"),
+            capacityKw: Number(asset.capacityKw ?? 0),
+          })),
+        meters: assets
+          .filter((asset) => String(asset.type ?? "").toLowerCase().includes("meter"))
+          .map((asset) => ({ id: String(asset.id ?? asset.externalRef ?? "meter") })),
+        batteries: assets
+          .filter((asset) => String(asset.type ?? "").toLowerCase().includes("battery"))
+          .map((asset) => ({
+            id: String(asset.id ?? asset.externalRef ?? "battery"),
+            capacityKw: Number(asset.capacityKw ?? 0),
+          })),
+        exportPointId: "export-point",
+      });
     },
   );
 
@@ -1991,6 +2119,7 @@ export async function startApiServer(): Promise<void> {
     createIncident: database.createIncident,
     listIncidents: database.listIncidents,
     updateIncident: database.updateIncident,
+    requestPrivilegedAccess: database.requestPrivilegedAccess,
     writeAuditEvent: database.writeAuditEvent,
     readinessCheck: async () => {
       try {

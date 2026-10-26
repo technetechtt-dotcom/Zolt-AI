@@ -24,6 +24,7 @@ export {
   credentialExpiryFromDays,
   credentialExpiryPolicy,
   listApiCredentials,
+  invalidateCredentialCache,
   resolveApiCredential,
   revokeApiCredential,
   revokeCredentialsForIdentity,
@@ -75,6 +76,11 @@ export {
   syncPlatformOperatorsToTenant,
   userIsPlatformOperator,
 } from "./repositories/platform-operators.js";
+export {
+  activePrivilegedAccess,
+  platformOperatorSessionHours,
+  requestPrivilegedAccess,
+} from "./repositories/platform-access.js";
 export {
   archiveExpiredRecommendations,
   hasInstallationAccess,

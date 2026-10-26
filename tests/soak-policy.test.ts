@@ -36,4 +36,53 @@ describe("soak policy", () => {
       }),
     ).toBe(false);
   });
+
+  it("fails a completed soak that exceeds P95 or heap growth", () => {
+    expect(
+      soakPassed({
+        inProgress: false,
+        durationMs: 1440 * 60_000,
+        messages: 10_000,
+        successful: 10_000,
+        failed: 0,
+        targetMinutes: 1440,
+        p95Ms: 1800,
+        p99Ms: 400,
+      }),
+    ).toBe(false);
+    expect(
+      soakPassed({
+        inProgress: false,
+        durationMs: 1440 * 60_000,
+        messages: 10_000,
+        successful: 10_000,
+        failed: 0,
+        targetMinutes: 1440,
+        p95Ms: 400,
+        p99Ms: 500,
+        growingHeap: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("passes a completed soak within bounded latency and resources", () => {
+    expect(
+      soakPassed({
+        inProgress: false,
+        durationMs: 1440 * 60_000,
+        messages: 10_000,
+        successful: 10_000,
+        failed: 0,
+        targetMinutes: 1440,
+        p95Ms: 400,
+        p99Ms: 500,
+        heapGrowthMb: 8,
+        rssMb: 90,
+        queueAgeMs: 120,
+        dlqCount: 0,
+        duplicateRecommendations: 0,
+        workerLag: 0,
+      }),
+    ).toBe(true);
+  });
 });

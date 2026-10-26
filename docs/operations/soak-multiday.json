@@ -1,8 +1,21 @@
 {
-  "generatedAt": "2026-10-21T09:51:00.000Z",
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T12:20:00.000Z",
+  "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
+  "environment": "local",
+  "operator": "soak-supervisor",
+  "result": "QUEUED",
   "inProgress": false,
   "queuedAfter": "soak-24h",
   "soakMinutes": 4320,
   "tier": "10",
-  "note": "Multi-day soak is queued behind the 24-hour soak so both do not contend for the same gateway."
+  "trafficProfile": "mix",
+  "includes": [
+    "normal telemetry",
+    "reconnect bursts",
+    "alarm bursts",
+    "network interruptions",
+    "sustained periods"
+  ],
+  "note": "72-hour mixed-traffic soak starts only after the 24-hour soak reaches 1440 minutes with strengthened pass criteria. It has not started."
 }

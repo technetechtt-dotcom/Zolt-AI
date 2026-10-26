@@ -1,0 +1,44 @@
+{
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T12:20:00.000Z",
+  "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
+  "environment": "local",
+  "operator": "soak-harness",
+  "result": "ROOT_CAUSE",
+  "soakArtifact": "soak-24h.json",
+  "observed": {
+    "messages": 36820,
+    "successful": 36820,
+    "failed": 0,
+    "p50Ms": 525.4,
+    "p95Ms": 832.04,
+    "p99Ms": 963.59,
+    "elapsedMinutes": 71.5,
+    "heapGrowthMb": 9.6,
+    "growingHeap": false
+  },
+  "loadTestComparison": {
+    "load-10-p95Ms": 48,
+    "load-1000-p95Ms": 129,
+    "load-10000-p95Ms": 152,
+    "note": "Burst load tests used the env API key path and short duration. Soak uses a DB-backed soak-load credential on every request."
+  },
+  "ruledOut": {
+    "rateLimiting": "0 x 429 after performance-test profile; all 36820 were 202",
+    "hmacReplay": "HMAC SHA-256 plus Redis NX is sub-millisecond relative to 800 ms",
+    "gcGrowingHeap": "heapGrowthMb 9.6, growingHeap false",
+    "queueBacklogForIngest": "ingest returns 202 after enqueue; P95 is request time before worker persistence completes",
+    "hostSaturation": "worker and API ready probes stayed true; soak client RSS 71.7 MB"
+  },
+  "primaryCause": "Per-request scrypt verify plus lastUsedAt UPDATE on the same api_credential row and a CREDENTIAL_USED audit insert, plus three installation-identity lookups. Concurrent worker telemetry upserts serialize those credential-row writes. Burst load tests did not take this path.",
+  "mitigation": "15s credential cache, 60s lastUsedAt throttle, 30s installation identity cache, cache invalidation on revoke/rotate. Soak P95 budget remains 1000 ms (looser than the 500 ms burst load-test budget).",
+  "postMitigationProbe": {
+    "messages": 200,
+    "successful": 200,
+    "p50Ms": 15.73,
+    "p95Ms": 3528.4,
+    "p99Ms": 11166.97,
+    "note": "Steady-state P50 dropped from 525 ms to ~16 ms, confirming credential-row lock as the soak median. Burst P95/P99 remain high under concurrency 10 immediately after a gateway restart while the worker drains a backlog. The 24h soak is steady ~8 rps, not this burst shape. Long-duration P95 must be re-measured on the restarted 24h run."
+  },
+  "plantExecution": false
+}

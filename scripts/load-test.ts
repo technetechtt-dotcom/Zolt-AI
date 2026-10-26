@@ -1,10 +1,22 @@
+import { execSync } from "node:child_process";
 import { createHmac, randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import {
+  evaluateSoakCriteria,
   evaluateSoakPreflight,
   soakShouldAbort,
 } from "./lib/soak-policy.js";
+
+function gitSha(): string | undefined {
+  try {
+    return execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+const commitSha = gitSha();
 
 function argValue(name: string): string | undefined {
   const pair = process.argv.find((item) => item.startsWith(`${name}=`));
@@ -205,7 +217,13 @@ async function sampleResources(): Promise<Record<string, unknown>> {
       },
       signal: AbortSignal.timeout(3000),
     });
-    if (health.ok) sample.queues = await health.json();
+    if (health.ok) {
+      const queues = (await health.json()) as Record<string, unknown>;
+      sample.queues = queues;
+      sample.queueAgeMs = Number(queues.oldestAgeMs ?? queues.oldestWaitingMs ?? 0);
+      sample.dlqCount = Number(queues.failed ?? queues.dlq ?? 0);
+      sample.workerLag = Number(queues.delayed ?? queues.lag ?? 0);
+    }
   } catch {
     /* ignore */
   }
@@ -222,6 +240,12 @@ async function sampleResources(): Promise<Record<string, unknown>> {
       signal: AbortSignal.timeout(2000),
     });
     sample.workerReady = worker.ok;
+    if (worker.ok) {
+      const body = (await worker.json()) as Record<string, unknown>;
+      sample.workerRssMb = body.rssMb;
+      sample.redisMemoryMb = body.redisMemoryMb;
+      sample.dbConnections = body.dbConnections;
+    }
   } catch {
     sample.workerReady = false;
   }
@@ -242,12 +266,48 @@ function leakSignals(): Record<string, unknown> {
   };
 }
 
-async function checkpoint(cycle: number): Promise<void> {
-  const durationMs = performance.now() - started;
+function latencySnapshot(): { p50: number; p95: number; p99: number } {
   const sorted = [...latencies].sort((a, b) => a - b);
-  await sampleResources();
-  const report = {
+  return {
+    p50: Number(percentile(sorted, 0.5).toFixed(2)),
+    p95: Number(percentile(sorted, 0.95).toFixed(2)),
+    p99: Number(percentile(sorted, 0.99).toFixed(2)),
+  };
+}
+
+function soakReportFields(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  const durationMs = performance.now() - started;
+  const latencyMs = latencySnapshot();
+  const resources = leakSignals();
+  const latest = resourceSamples.at(-1) as Record<string, unknown> | undefined;
+  const passCriteria = evaluateSoakCriteria({
+    inProgress: extra.inProgress as boolean | undefined,
+    soakMinutes,
+    durationMs,
+    messages,
+    successful,
+    failed,
+    aborted: Boolean(aborted),
+    targetMinutes: soakMinutes,
+    failureThreshold,
+    p95Ms: latencyMs.p95,
+    p99Ms: latencyMs.p99,
+    heapGrowthMb: Number((resources as { heapGrowthMb?: number }).heapGrowthMb ?? 0),
+    growingHeap: Boolean((resources as { growingHeap?: boolean }).growingHeap),
+    rssMb: Number(latest?.rssMb ?? 0),
+    queueAgeMs: Number(latest?.queueAgeMs ?? 0),
+    dbConnections: Number(latest?.dbConnections ?? 0),
+    redisMemoryMb: Number(latest?.redisMemoryMb ?? 0),
+    dlqCount: Number(latest?.dlqCount ?? 0),
+    duplicateRecommendations: 0,
+    workerLag: Number(latest?.workerLag ?? 0),
+  });
+  return {
+    evidenceVersion: 1,
     generatedAt: new Date().toISOString(),
+    commitSha,
+    environment: process.env.ZOLT_ENVIRONMENT ?? "local",
+    operator: process.env.ZOLT_EVIDENCE_OPERATOR ?? "soak-harness",
     target: url,
     simulated: true,
     tier,
@@ -258,8 +318,6 @@ async function checkpoint(cycle: number): Promise<void> {
     reconnectEvery,
     reconnectPauseMs,
     reconnectBursts,
-    cycle,
-    inProgress: soakMinutes > 0 && !aborted,
     aborted: Boolean(aborted),
     abortReason: aborted,
     preflight,
@@ -269,15 +327,22 @@ async function checkpoint(cycle: number): Promise<void> {
     failed,
     durationMs: Number(durationMs.toFixed(2)),
     messagesPerSecond: Number((messages / Math.max(durationMs / 1000, 0.001)).toFixed(2)),
-    latencyMs: {
-      p50: Number(percentile(sorted, 0.5).toFixed(2)),
-      p95: Number(percentile(sorted, 0.95).toFixed(2)),
-      p99: Number(percentile(sorted, 0.99).toFixed(2))
-    },
+    latencyMs,
+    p95BudgetMs,
     statusCodes: Object.fromEntries(statusCodes),
-    resources: leakSignals(),
-    latestSample: resourceSamples.at(-1)
+    resources,
+    latestSample: latest,
+    passCriteria,
+    ...extra,
   };
+}
+
+async function checkpoint(cycle: number): Promise<void> {
+  await sampleResources();
+  const report = soakReportFields({
+    cycle,
+    inProgress: soakMinutes > 0 && !aborted,
+  });
   await mkdir("docs/operations", { recursive: true });
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 }
@@ -320,9 +385,11 @@ if (soakMinutes > 0) {
     process.exit(2);
   }
   const endAt = startedAt + soakMinutes * 60_000;
+  const cycleBudgetMs = Number(process.env.ZOLT_SOAK_CYCLE_MS ?? "2500");
   let cycle = 0;
   while (Date.now() < endAt) {
     cycle += 1;
+    const cycleStarted = Date.now();
     const mixSlow = trafficProfile === "mix" && cycle % 17 === 0;
     const mixBurst = trafficProfile === "mix" && cycle % 11 === 0;
     const reconnectNow =
@@ -342,12 +409,23 @@ if (soakMinutes > 0) {
         setTimeout(resolve, mixBurst ? reconnectPauseMs || 800 : reconnectPauseMs),
       );
     }
-    if (soakShouldAbort({ messages, failed, threshold: failureThreshold })) {
+    if (
+      soakShouldAbort({
+        messages,
+        failed,
+        threshold: failureThreshold,
+        p95Ms: latencySnapshot().p95,
+      })
+    ) {
       aborted = "FAILURE_THRESHOLD_EXCEEDED";
       await checkpoint(cycle);
       break;
     }
     await checkpoint(cycle);
+    const remain = cycleBudgetMs - (Date.now() - cycleStarted);
+    if (remain > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remain));
+    }
   }
 } else if (reconnectEvery > 0 || reconnectCycles > 0) {
   const cycles = Math.max(reconnectCycles, reconnectEvery > 0 ? 6 : 1);
@@ -363,49 +441,18 @@ if (soakMinutes > 0) {
   ingest(await runBurst(deviceCount * messagesPerDevice));
 }
 
-const durationMs = performance.now() - started;
-const sorted = [...latencies].sort((a, b) => a - b);
 await sampleResources();
-const report = {
-  generatedAt: new Date().toISOString(),
-  target: url,
-  simulated: true,
-  tier,
-  deviceCount,
-  messagesPerDevice,
-  soakMinutes,
-  trafficProfile,
-  reconnectEvery,
-  reconnectPauseMs,
-  reconnectBursts,
-  inProgress: false,
-  aborted: Boolean(aborted),
-  abortReason: aborted,
-  preflight,
-  failureThreshold,
-  messages,
-  successful,
-  failed,
-  durationMs: Number(durationMs.toFixed(2)),
-  messagesPerSecond: Number((messages / Math.max(durationMs / 1000, 0.001)).toFixed(2)),
-  latencyMs: {
-    p50: Number(percentile(sorted, 0.5).toFixed(2)),
-    p95: Number(percentile(sorted, 0.95).toFixed(2)),
-    p99: Number(percentile(sorted, 0.99).toFixed(2))
-  },
-  p95BudgetMs,
-  statusCodes: Object.fromEntries(statusCodes),
-  resources: leakSignals(),
-  latestSample: resourceSamples.at(-1)
-};
+const report = soakReportFields({ inProgress: false });
 
 await mkdir("docs/operations", { recursive: true });
 await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+const latency = report.latencyMs as { p95: number };
 if (
   aborted ||
-  (soakMinutes === 0 && (report.failed > 0 || report.latencyMs.p95 > p95BudgetMs)) ||
-  (soakMinutes > 0 && report.failed / Math.max(report.messages, 1) > failureThreshold)
+  (soakMinutes === 0 && (Number(report.failed) > 0 || latency.p95 > p95BudgetMs)) ||
+  (soakMinutes > 0 &&
+    Number(report.failed) / Math.max(Number(report.messages), 1) > failureThreshold)
 ) {
   process.exitCode = 1;
 }

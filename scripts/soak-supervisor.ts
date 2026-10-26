@@ -16,6 +16,13 @@ interface SoakReport {
   messages?: number;
   aborted?: boolean;
   abortReason?: string;
+  generatedAt?: string;
+}
+
+function reportStale(report: SoakReport | undefined): boolean {
+  if (!report?.generatedAt) return true;
+  const ageMs = Date.now() - Date.parse(report.generatedAt);
+  return Number.isNaN(ageMs) || ageMs > 15 * 60_000;
 }
 
 function readCredentialEnv(): Record<string, string> {
@@ -94,10 +101,10 @@ function startSoak(minutes: number, report: string, traffic: string): void {
           readCredentialEnv().ZOLT_LOAD_HMAC_SECRET ??
           process.env.ZOLT_INGEST_HMAC_SECRET ??
           "dev-hmac-secret-change-me",
-        ZOLT_LOAD_DEVICES: process.env.ZOLT_SOAK_DEVICES ?? "10",
-        ZOLT_LOAD_CONCURRENCY: process.env.ZOLT_LOAD_CONCURRENCY ?? "10",
+        ZOLT_LOAD_DEVICES: process.env.ZOLT_SOAK_DEVICES ?? "5",
+        ZOLT_LOAD_CONCURRENCY: process.env.ZOLT_LOAD_CONCURRENCY ?? "5",
         ZOLT_LOAD_MESSAGES_PER_DEVICE:
-          process.env.ZOLT_SOAK_MESSAGES_PER_DEVICE ?? "5",
+          process.env.ZOLT_SOAK_MESSAGES_PER_DEVICE ?? "4",
         ZOLT_LOAD_P95_BUDGET_MS: "10000",
         ZOLT_SOAK_FAILURE_THRESHOLD: process.env.ZOLT_SOAK_FAILURE_THRESHOLD ?? "0.001",
         ZOLT_LOAD_TRAFFIC: traffic,
@@ -110,7 +117,14 @@ function startSoak(minutes: number, report: string, traffic: string): void {
 
 process.stdout.write("soak-supervisor watching 24h then multi-day\n");
 const currentAtBoot = await readReport(twentyFourHourReport);
-if (
+const liveSoak =
+  currentAtBoot?.inProgress === true &&
+  !currentAtBoot.aborted &&
+  (currentAtBoot.successful ?? 0) > 0 &&
+  !reportStale(currentAtBoot);
+if (liveSoak) {
+  process.stdout.write("adopting in-progress 24h soak; not starting a duplicate run\n");
+} else if (
   !soakPassed({ ...currentAtBoot, targetMinutes: 1440 }) ||
   invalidEvidence(currentAtBoot)
 ) {

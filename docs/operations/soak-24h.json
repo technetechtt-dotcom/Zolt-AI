@@ -1,5 +1,9 @@
 {
-  "generatedAt": "2026-10-26T10:57:02.552Z",
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T12:34:53.212Z",
+  "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
+  "environment": "local",
+  "operator": "soak-harness",
   "target": "http://localhost:4001/v1/ingest/gridflex",
   "simulated": true,
   "tier": "10",
@@ -10,8 +14,6 @@
   "reconnectEvery": 0,
   "reconnectPauseMs": 500,
   "reconnectBursts": 0,
-  "cycle": 1841,
-  "inProgress": true,
   "aborted": false,
   "preflight": {
     "attempted": 20,
@@ -23,29 +25,41 @@
     "ok": true
   },
   "failureThreshold": 0.001,
-  "messages": 36820,
-  "successful": 36820,
+  "messages": 4680,
+  "successful": 4680,
   "failed": 0,
-  "durationMs": 4287856.37,
-  "messagesPerSecond": 8.59,
+  "durationMs": 586925.96,
+  "messagesPerSecond": 7.97,
   "latencyMs": {
-    "p50": 525.4,
-    "p95": 832.04,
-    "p99": 963.59
+    "p50": 20.79,
+    "p95": 1151.05,
+    "p99": 1664.7
   },
+  "p95BudgetMs": 10000,
   "statusCodes": {
-    "202": 36820
+    "202": 4680
   },
   "resources": {
-    "heapGrowthMb": 9.6,
-    "sampleCount": 77,
+    "heapGrowthMb": -6.5,
+    "sampleCount": 87,
     "growingHeap": false
   },
   "latestSample": {
-    "at": "2026-10-26T10:57:02.402Z",
-    "rssMb": 71.7,
-    "heapUsedMb": 27.2,
+    "at": "2026-10-26T12:34:53.149Z",
+    "rssMb": 62.8,
+    "heapUsedMb": 20.4,
     "apiReady": true,
     "workerReady": true
-  }
+  },
+  "passCriteria": {
+    "ok": false,
+    "failures": [
+      "still-in-progress",
+      "duration-short",
+      "p95",
+      "p99"
+    ]
+  },
+  "cycle": 234,
+  "inProgress": true
 }

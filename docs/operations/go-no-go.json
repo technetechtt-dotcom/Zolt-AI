@@ -1,0 +1,23 @@
+{
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T12:20:00.000Z",
+  "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
+  "environment": "local",
+  "operator": "engineering",
+  "result": "NO-GO",
+  "advisoryOnly": true,
+  "plantExecution": false,
+  "criteria": {
+    "physicalHil": "FAIL",
+    "soak24h": "IN_PROGRESS",
+    "soakMultiday": "QUEUED",
+    "redisDurability": "PASS",
+    "managedSecrets": "BLOCKED",
+    "stagingMonitoring": "DEPLOYED_LOCAL",
+    "independentPentest": "NOT_COMMISSIONED",
+    "realDataGate": "FAIL",
+    "signedCustomerDocuments": "MISSING",
+    "releaseCi": "NOT_VERIFIED_ON_THIS_MACHINE"
+  },
+  "note": "Production go requires physical HIL PASS, soak PASS, multi-day PASS, Redis durability PASS, managed secrets PASS, staging monitoring PASS, external pentest PASS/retested, real-data gate PASS or an explicitly AI-limited pilot scope, signed customer documents, and green release CI."
+}

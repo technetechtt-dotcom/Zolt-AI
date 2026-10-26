@@ -1,0 +1,27 @@
+{
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T12:20:00.000Z",
+  "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
+  "environment": "local",
+  "operator": "engineering",
+  "result": "FAIL",
+  "plantExecution": false,
+  "inverter": {
+    "manufacturer": null,
+    "model": null,
+    "firmware": null,
+    "modbusSlaveId": null,
+    "registerMapRevision": null
+  },
+  "serial": {
+    "baud": null,
+    "parity": null,
+    "stopBits": null,
+    "adapterModel": null,
+    "cabling": null,
+    "termination": null
+  },
+  "rawModbusResponses": [],
+  "edgeNode": null,
+  "reason": "No Waveshare ESP32-S3/SIM7670X Edge Node, genuine USB-RS485 path, or named inverter is attached. COM7 previously enumerated as a Huawei modem. Plant control remains disabled."
+}

@@ -8,6 +8,7 @@ import {
   generateRecoveryCodes,
   generateTotpSecret,
   hashSecret,
+  isProduction,
   totpUri,
   verifySecret,
   verifyTotp,
@@ -20,6 +21,7 @@ import {
   platformOperatorPermissions,
   userIsPlatformOperator,
 } from "./platform-operators.js";
+import { platformOperatorSessionHours } from "./platform-access.js";
 
 function db(): any {
   return prisma as unknown as any;
@@ -205,7 +207,12 @@ export async function authenticateUser(input: {
       ipAddress: input.ipAddress,
       lastSeenAt: now,
       expiresAt: new Date(
-        Date.now() + Number(process.env.ZOLT_SESSION_HOURS ?? 12) * 60 * 60_000,
+        Date.now() +
+          (platformOperator
+            ? platformOperatorSessionHours(isProduction())
+            : Number(process.env.ZOLT_SESSION_HOURS ?? 12)) *
+            60 *
+            60_000,
       ),
     },
   });
@@ -345,7 +352,11 @@ export async function switchTenantSession(input: {
           ipAddress: session.ipAddress,
           expiresAt: new Date(
             Date.now() +
-              Number(process.env.ZOLT_SESSION_HOURS ?? 12) * 60 * 60_000,
+              ((await userIsPlatformOperator(session.userId))
+                ? platformOperatorSessionHours(isProduction())
+                : Number(process.env.ZOLT_SESSION_HOURS ?? 12)) *
+                60 *
+                60_000,
           ),
         },
       }),

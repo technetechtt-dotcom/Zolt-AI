@@ -1,151 +1,223 @@
 {
-  "generatedAt": "2026-10-26T09:46:47.698Z",
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T12:25:31.048Z",
+  "result": "META",
   "artifacts": [
     {
       "file": "alert-routing.json",
-      "status": "BLOCKED"
+      "status": "LIVE_LOCAL_SINK",
+      "notes": "Alertmanager is up and routes to the local alert-sink on :9095. No PagerDuty/Slack destination is configured."
     },
     {
       "file": "backup-restore-result.json",
-      "status": "UNREADABLE"
+      "status": "PASS",
+      "notes": ""
     },
     {
       "file": "campaign-result.json",
-      "status": "UNKNOWN"
+      "status": "FAIL",
+      "notes": "hil-emulator:PASS; physical-hil-com7:FAIL; load-10:PASS; load-100:PASS; load-1000:PASS; load-10000:PASS; reconnect-burst:PASS; soak-rehearsal:PASS; soak-24h:STARTED; soak-multiday:STARTED; chaos-redis:SKIPPED; chaos-postgres:SKIPPED; backup-restore:SKIPPED; pitr:SKIPPED; observability-compose:SKIPPED; managed-secrets-rotate:PASS; security-assessment:PASS; ml-train-validate:PASS; optimisation-horizon:PASS; controlled-pilot:PASS"
     },
     {
       "file": "chaos-result.json",
-      "status": "UNREADABLE"
+      "status": "PASS",
+      "notes": ""
     },
     {
       "file": "credential-rotation.json",
-      "status": "UNKNOWN"
+      "status": "BLOCKED",
+      "notes": "No AWS Secrets Manager, Azure Key Vault, or GCP Secret Manager is configured. Staging/pilot credentials cannot be rotated through a managed backend until ZOLT_SECRETS_PROVIDER is set."
     },
     {
       "file": "dataset-manifest.json",
-      "status": "UNKNOWN"
+      "status": "ENGINEERING",
+      "notes": "emulator/synthetic dataset; not a named plant"
     },
     {
       "file": "dataset-manifest.template.json",
-      "status": "UNKNOWN"
+      "status": "TEMPLATE",
+      "notes": ""
     },
     {
       "file": "evidence-summary.json",
-      "status": "UNKNOWN"
+      "status": "META",
+      "notes": "aggregator output"
     },
     {
       "file": "field-pilot.json",
-      "status": "BLOCKED"
+      "status": "BLOCKED",
+      "notes": "No customer site, GridFlex Edge Node, or USB-RS485 inverter path is attached to this workstation. Chaos recovery now PASSes locally; physical HIL, managed secrets, independent pentest and real-data gates remain required before a controlled advisory-only pilot."
+    },
+    {
+      "file": "go-no-go.json",
+      "status": "NO-GO",
+      "notes": "Production go requires physical HIL PASS, soak PASS, multi-day PASS, Redis durability PASS, managed secrets PASS, staging monitoring PASS, external pentest PASS/retested, real-data gate PASS or an explicitly AI-limited pilot scope, signed customer documents, and green release CI."
     },
     {
       "file": "gridflex-pilot.json",
-      "status": "UNKNOWN"
+      "status": "ENGINEERING",
+      "notes": "controlled emulator pilot; no named plant"
     },
     {
       "file": "hil-emulator-result.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": ""
     },
     {
       "file": "hil-gridflex-result.json",
-      "status": "BLOCKED"
+      "status": "FAIL",
+      "notes": "No genuine USB-RS485 adapter with a supported inverter or hardware emulator is attached. COM4 is listed but cannot be opened. COM7 remains a Huawei modem. Emulator HIL is a separate PASS and is not this physical pipeline."
     },
     {
       "file": "hil-physical-com7.json",
-      "status": "UNREADABLE"
+      "status": "FAIL",
+      "notes": ""
     },
     {
       "file": "load-10.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": "1000/1000 ok"
     },
     {
       "file": "load-100.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": "10000/10000 ok"
     },
     {
       "file": "load-1000.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": "50000/50000 ok"
     },
     {
       "file": "load-10000.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": "100000/100000 ok"
     },
     {
       "file": "managed-secrets.json",
-      "status": "BLOCKED"
+      "status": "BLOCKED",
+      "notes": "Set ZOLT_SECRETS_PROVIDER=aws|gcp|azure and CLI credentials to leave local AES-GCM"
     },
     {
       "file": "ml-training-result.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": ""
     },
     {
       "file": "model-benchmark.json",
-      "status": "BLOCKED"
+      "status": "FAIL",
+      "notes": "REAL_GRIDFLEX_DATASET_UNAVAILABLE"
     },
     {
       "file": "observability-deploy.json",
-      "status": "DEPLOYED_LOCAL"
+      "status": "DEPLOYED_LOCAL",
+      "notes": "Host ports remapped around GridFlex (Prometheus 9096, Grafana 3002). This is not a production cluster or a real pager destination."
     },
     {
       "file": "pentest-commission.json",
-      "status": "NOT_COMMISSIONED"
+      "status": "NOT_COMMISSIONED",
+      "notes": "An independent firm cannot be contracted from this environment. Set ZOLT_PENTEST_VENDOR, ZOLT_PENTEST_ENGAGEMENT_ID, and ZOLT_PENTEST_START_DATE after the SOW is signed."
+    },
+    {
+      "file": "pentest-scope.json",
+      "status": "NOT_COMMISSIONED",
+      "notes": "Internal security-assessment.json is not a substitute for an independent firm."
     },
     {
       "file": "physical-e2e-status.json",
-      "status": "BLOCKED"
+      "status": "BLOCKED",
+      "notes": "Physical path is disabled until HIL hardware is connected. Hardware execution remains hard-coded off."
     },
     {
       "file": "physical-hil-status.json",
-      "status": "BLOCKED"
+      "status": "FAIL",
+      "notes": "No Waveshare ESP32-S3/SIM7670X Edge Node, genuine USB-RS485 adapter, or named supported inverter is attached. Prior COM7 was a Huawei modem. Physical HIL remains unexecuted."
+    },
+    {
+      "file": "physical-rs485-commissioning.json",
+      "status": "FAIL",
+      "notes": "No Waveshare ESP32-S3/SIM7670X Edge Node, genuine USB-RS485 path, or named inverter is attached. COM7 previously enumerated as a Huawei modem. Plant control remains disabled."
     },
     {
       "file": "pitr-result.json",
-      "status": "UNREADABLE"
+      "status": "PASS",
+      "notes": ""
     },
     {
       "file": "queue-durability.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": ""
     },
     {
       "file": "real-data-gate.json",
-      "status": "BLOCKED"
+      "status": "FAIL",
+      "notes": "No named-plant dataset. Emulator scores are not accepted."
     },
     {
       "file": "reconnect-burst.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": "6000/6000 ok"
     },
     {
       "file": "security-assessment.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": ""
+    },
+    {
+      "file": "soak-24h-interrupted.json",
+      "status": "INTERRUPTED",
+      "notes": "HARNESS_STOPPED_CHECKPOINTING"
     },
     {
       "file": "soak-24h.json",
-      "status": "IN_PROGRESS"
+      "status": "IN_PROGRESS",
+      "notes": "200/200 ok"
+    },
+    {
+      "file": "soak-latency-after-cache.json",
+      "status": "ROOT_CAUSE",
+      "notes": "After credential/identity caching, P95 fell from 832 ms to ~50 ms. This burst (~140 msg/s) was stopped so the 24h soak can run at a sustainable ~8-10 msg/s and not dominate database growth."
+    },
+    {
+      "file": "soak-latency-investigation.json",
+      "status": "ROOT_CAUSE",
+      "notes": ""
+    },
+    {
+      "file": "soak-latency-probe.json",
+      "status": "PASS",
+      "notes": "200/200 ok"
     },
     {
       "file": "soak-multiday.json",
-      "status": "UNKNOWN"
+      "status": "QUEUED",
+      "notes": "72-hour mixed-traffic soak starts only after the 24-hour soak reaches 1440 minutes with strengthened pass criteria. It has not started."
     },
     {
       "file": "soak-preflight.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": "20/20 ok"
     },
     {
       "file": "soak-rehearsal.json",
-      "status": "PASS"
+      "status": "PASS",
+      "notes": "23600/23600 ok"
     }
   ],
   "failing": [
-    "alert-routing.json",
-    "backup-restore-result.json",
-    "chaos-result.json",
+    "campaign-result.json",
+    "credential-rotation.json",
     "field-pilot.json",
+    "go-no-go.json",
     "hil-gridflex-result.json",
     "hil-physical-com7.json",
     "managed-secrets.json",
     "model-benchmark.json",
+    "pentest-commission.json",
+    "pentest-scope.json",
     "physical-e2e-status.json",
     "physical-hil-status.json",
-    "pitr-result.json",
+    "physical-rs485-commissioning.json",
     "real-data-gate.json"
   ]
 }

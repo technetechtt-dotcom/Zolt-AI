@@ -88,6 +88,10 @@ export function optimiseSite(input: {
               100 -
               reservedKw,
           );
+  const roundTrip = Math.min(
+    1,
+    Math.max(0.5, economics.roundTripEfficiency ?? 0.92),
+  );
   const chargeKw =
     input.batterySocPct < maximumSocPct
       ? Math.min(
@@ -100,7 +104,12 @@ export function optimiseSite(input: {
       : 0;
   const dischargeKw =
     input.batterySocPct > reserveSocPct
-      ? Math.min(input.batteryPowerKw, cRateKw, capacityLimitedDischarge, deficit)
+      ? Math.min(
+          input.batteryPowerKw,
+          cRateKw,
+          capacityLimitedDischarge * roundTrip,
+          deficit,
+        )
       : 0;
   const afterStorage = surplus - chargeKw + dischargeKw;
   const curtailedKw = Math.max(0, afterStorage - input.exportLimitKw);
@@ -150,6 +159,98 @@ export function optimiseSite(input: {
       !temperatureBlocked &&
       !warrantyExhausted,
     advisoryOnly: true,
+  };
+}
+
+export type StrategyName =
+  | "no-action"
+  | "simple-rules"
+  | "greedy"
+  | "zolt"
+  | "offline-optimum";
+
+export type StrategyInput = Parameters<typeof optimiseSite>[0];
+
+export function noActionPlan(input: StrategyInput): DispatchPlan {
+  const surplus = Math.max(0, input.forecastKw - input.loadKw);
+  const curtailedKw = Math.max(0, surplus - input.exportLimitKw);
+  return {
+    chargeKw: 0,
+    dischargeKw: 0,
+    curtailedKw: Number(curtailedKw.toFixed(3)),
+    flexibleLoadKw: 0,
+    hydrogenKg: 0,
+    objective: Number((-curtailedKw * input.tariff).toFixed(3)),
+    baselineCurtailmentKw: Number(curtailedKw.toFixed(3)),
+    recoveredEnergyKwh: 0,
+    estimatedRevenueImpact: 0,
+    degradationCost: 0,
+    netRevenueImpact: 0,
+    constraintsSatisfied: true,
+    advisoryOnly: true,
+  };
+}
+
+export function simpleRulesPlan(input: StrategyInput): DispatchPlan {
+  const surplus = Math.max(0, input.forecastKw - input.loadKw);
+  const deficit = Math.max(0, input.loadKw - input.forecastKw);
+  const chargeKw =
+    surplus > 0 && input.batterySocPct < 80
+      ? Math.min(input.batteryPowerKw, surplus)
+      : 0;
+  const dischargeKw =
+    deficit > 0 && input.batterySocPct > 20
+      ? Math.min(input.batteryPowerKw, deficit)
+      : 0;
+  const afterStorage = surplus - chargeKw + dischargeKw;
+  const curtailedKw = Math.max(0, afterStorage - input.exportLimitKw);
+  return {
+    chargeKw,
+    dischargeKw,
+    curtailedKw,
+    flexibleLoadKw: 0,
+    hydrogenKg: 0,
+    objective: Number((dischargeKw * input.tariff - curtailedKw * input.tariff).toFixed(3)),
+    baselineCurtailmentKw: Number(Math.max(0, surplus - input.exportLimitKw).toFixed(3)),
+    recoveredEnergyKwh: Number(
+      Math.max(0, Math.max(0, surplus - input.exportLimitKw) - curtailedKw).toFixed(3),
+    ),
+    estimatedRevenueImpact: 0,
+    degradationCost: 0,
+    netRevenueImpact: 0,
+    constraintsSatisfied: true,
+    advisoryOnly: true,
+  };
+}
+
+export function greedyPlan(input: StrategyInput): DispatchPlan {
+  return simpleRulesPlan(input);
+}
+
+export function offlineOptimumPlan(input: StrategyInput): DispatchPlan {
+  let best = optimiseSite(input);
+  for (const chargeKw of [0, input.batteryPowerKw / 2, input.batteryPowerKw]) {
+    for (const dischargeKw of [0, input.batteryPowerKw / 2, input.batteryPowerKw]) {
+      if (chargeKw > 0 && dischargeKw > 0) continue;
+      const candidate = optimiseSite({
+        ...input,
+        batteryPowerKw: Math.max(chargeKw, dischargeKw, 0.001),
+      });
+      if (candidate.objective > best.objective) best = candidate;
+    }
+  }
+  return best;
+}
+
+export function benchmarkStrategies(
+  input: StrategyInput,
+): Record<StrategyName, DispatchPlan> {
+  return {
+    "no-action": noActionPlan(input),
+    "simple-rules": simpleRulesPlan(input),
+    greedy: greedyPlan(input),
+    zolt: optimiseSite(input),
+    "offline-optimum": offlineOptimumPlan(input),
   };
 }
 

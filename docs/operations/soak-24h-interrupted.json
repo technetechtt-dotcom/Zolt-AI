@@ -1,0 +1,27 @@
+{
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T10:57:02.552Z",
+  "copiedAt": "2026-10-26T12:25:00.000Z",
+  "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
+  "environment": "local",
+  "operator": "soak-harness",
+  "result": "INTERRUPTED",
+  "inProgress": false,
+  "aborted": true,
+  "abortReason": "HARNESS_STOPPED_CHECKPOINTING",
+  "soakMinutes": 1440,
+  "messages": 36820,
+  "successful": 36820,
+  "failed": 0,
+  "durationMs": 4287856.37,
+  "latencyMs": {
+    "p50": 525.4,
+    "p95": 832.04,
+    "p99": 963.59
+  },
+  "resources": {
+    "heapGrowthMb": 9.6,
+    "growingHeap": false
+  },
+  "note": "The 24h load-test child stopped updating soak-24h.json after ~71.5 minutes. Supervisor kept watching a stale in-progress file. Snapshot preserved before a fresh 24h run with credential-cache latency mitigation."
+}

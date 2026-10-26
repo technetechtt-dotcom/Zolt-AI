@@ -249,8 +249,26 @@ const healthServer = createServer(async (req, res) => {
         }),
       ]);
       if (pong !== "PONG") throw new Error("REDIS_UNAVAILABLE");
+      const mem = process.memoryUsage();
+      let redisMemoryMb: number | undefined;
+      try {
+        const info = await redis.info("memory");
+        const match = /used_memory:(\d+)/.exec(info);
+        if (match) redisMemoryMb = Number((Number(match[1]) / 1024 / 1024).toFixed(1));
+      } catch {
+        redisMemoryMb = undefined;
+      }
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ status: "ok", service: "zolt-worker" }));
+      res.end(
+        JSON.stringify({
+          status: "ok",
+          service: "zolt-worker",
+          rssMb: Number((mem.rss / 1024 / 1024).toFixed(1)),
+          heapUsedMb: Number((mem.heapUsed / 1024 / 1024).toFixed(1)),
+          redisMemoryMb,
+          uptimeSec: Math.round(process.uptime()),
+        }),
+      );
     } catch {
       res.writeHead(503, { "content-type": "application/json" });
       res.end(JSON.stringify({ status: "degraded", service: "zolt-worker" }));

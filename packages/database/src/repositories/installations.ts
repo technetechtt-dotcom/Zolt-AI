@@ -17,9 +17,17 @@ function db(): any {
   return prisma as unknown as any;
 }
 
+const identityCache = new Map<string, { ids: IdentityIds; until: number }>();
+const IDENTITY_CACHE_MS = Number(process.env.ZOLT_IDENTITY_CACHE_MS ?? 30_000);
+
 export async function resolveInstallationIdentity(
   ref: IdentityRef,
 ): Promise<IdentityIds> {
+  const cacheKey = `${ref.tenantKey}:${ref.productKey}:${ref.installationKey}`;
+  const cached = identityCache.get(cacheKey);
+  if (cached && cached.until > Date.now()) {
+    return cached.ids;
+  }
   const tenant = await db().tenant.findUnique({ where: { id: ref.tenantKey } });
   if (!tenant || tenant.archivedAt) {
     throw new Error("INSTALLATION_IDENTITY_NOT_FOUND");
@@ -46,11 +54,13 @@ export async function resolveInstallationIdentity(
   ) {
     throw new Error("TENANT_ISOLATION_VIOLATION");
   }
-  return {
+  const ids = {
     tenantId: tenant.id,
     productId: product.id,
     installationId: installation.id,
   };
+  identityCache.set(cacheKey, { ids, until: Date.now() + IDENTITY_CACHE_MS });
+  return ids;
 }
 
 export async function resolveProductIdentity(input: {

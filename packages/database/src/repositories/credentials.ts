@@ -55,9 +55,41 @@ export function credentialExpiryFromDays(days?: number): Date {
   return new Date(Date.now() + requested * 24 * 60 * 60_000);
 }
 
+const credentialCache = new Map<
+  string,
+  { principal: AuthenticatedPrincipal; until: number; rowId: string; lastTouch: number }
+>();
+const CREDENTIAL_CACHE_MS = Number(process.env.ZOLT_CREDENTIAL_CACHE_MS ?? 15_000);
+const CREDENTIAL_TOUCH_MS = Number(process.env.ZOLT_CREDENTIAL_TOUCH_MS ?? 60_000);
+
+export function invalidateCredentialCache(rowId?: string): void {
+  if (!rowId) {
+    credentialCache.clear();
+    return;
+  }
+  for (const [key, value] of credentialCache) {
+    if (value.rowId === rowId) credentialCache.delete(key);
+  }
+}
+
 export async function resolveApiCredential(
   plaintext: string,
 ): Promise<AuthenticatedPrincipal | null> {
+  const now = Date.now();
+  const cached = credentialCache.get(plaintext);
+  if (cached && cached.until > now) {
+    if (now - cached.lastTouch >= CREDENTIAL_TOUCH_MS) {
+      cached.lastTouch = now;
+      void db()
+        .apiCredential.update({
+          where: { id: cached.rowId },
+          data: { lastUsedAt: new Date() },
+        })
+        .catch(() => undefined);
+    }
+    return cached.principal;
+  }
+
   const prefix = plaintext.slice(0, 12);
   const rows = await db().apiCredential.findMany({
     where: {
@@ -100,7 +132,7 @@ export async function resolveApiCredential(
     const permissions =
       (row.permissions as PermissionKey[]) ??
       ROLE_PERMISSIONS["api-integration"];
-    return {
+    const principal = {
       tenantId: row.tenantId,
       productId: row.product?.externalKey ?? undefined,
       installationId: row.installation?.externalKey ?? undefined,
@@ -108,8 +140,15 @@ export async function resolveApiCredential(
       userId: row.userId ?? undefined,
       permissions,
       signingSecret: decryptSecret(row.signingSecretEnc),
-      actorType: "API",
+      actorType: "API" as const,
     };
+    credentialCache.set(plaintext, {
+      principal,
+      until: now + CREDENTIAL_CACHE_MS,
+      rowId: row.id,
+      lastTouch: now,
+    });
+    return principal;
   }
 
   return null;
@@ -301,6 +340,7 @@ export async function revokeApiCredential(
     where: { id: credentialId },
     data: { status: "REVOKED", revokedAt: new Date() },
   });
+  invalidateCredentialCache(credentialId);
   await writeAuditEvent({
     tenantId,
     eventType: "CREDENTIAL_REVOKED",
@@ -330,6 +370,7 @@ export async function rotateApiCredential(input: {
     where: { id: existing.id },
     data: { status: "ROTATED", revokedAt: new Date() },
   });
+  invalidateCredentialCache(existing.id);
   await db().apiCredential.create({
     data: {
       tenantId: existing.tenantId,

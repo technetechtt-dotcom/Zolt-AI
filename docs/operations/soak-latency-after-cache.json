@@ -1,0 +1,19 @@
+{
+  "evidenceVersion": 1,
+  "generatedAt": "2026-10-26T12:19:56.515Z",
+  "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
+  "environment": "local",
+  "operator": "soak-harness",
+  "result": "ROOT_CAUSE",
+  "messages": 11150,
+  "successful": 11150,
+  "failed": 0,
+  "durationMs": 79437.5,
+  "messagesPerSecond": 140.36,
+  "latencyMs": {
+    "p50": 20.65,
+    "p95": 50.33,
+    "p99": 126.34
+  },
+  "note": "After credential/identity caching, P95 fell from 832 ms to ~50 ms. This burst (~140 msg/s) was stopped so the 24h soak can run at a sustainable ~8-10 msg/s and not dominate database growth."
+}
