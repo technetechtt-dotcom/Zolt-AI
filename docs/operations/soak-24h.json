@@ -1,6 +1,6 @@
 {
   "evidenceVersion": 1,
-  "generatedAt": "2026-10-26T12:34:53.212Z",
+  "generatedAt": "2026-10-26T12:35:09.650Z",
   "commitSha": "a2151f5f27628826c3244440eb03f7a1118f9bad",
   "environment": "local",
   "operator": "soak-harness",
@@ -25,29 +25,29 @@
     "ok": true
   },
   "failureThreshold": 0.001,
-  "messages": 4680,
-  "successful": 4680,
+  "messages": 4760,
+  "successful": 4760,
   "failed": 0,
-  "durationMs": 586925.96,
-  "messagesPerSecond": 7.97,
+  "durationMs": 603376.61,
+  "messagesPerSecond": 7.89,
   "latencyMs": {
-    "p50": 20.79,
-    "p95": 1151.05,
-    "p99": 1664.7
+    "p50": 21.17,
+    "p95": 1154.08,
+    "p99": 1682.47
   },
   "p95BudgetMs": 10000,
   "statusCodes": {
-    "202": 4680
+    "202": 4760
   },
   "resources": {
-    "heapGrowthMb": -6.5,
-    "sampleCount": 87,
+    "heapGrowthMb": -12.6,
+    "sampleCount": 91,
     "growingHeap": false
   },
   "latestSample": {
-    "at": "2026-10-26T12:34:53.149Z",
-    "rssMb": 62.8,
-    "heapUsedMb": 20.4,
+    "at": "2026-10-26T12:35:08.605Z",
+    "rssMb": 64.9,
+    "heapUsedMb": 14.3,
     "apiReady": true,
     "workerReady": true
   },
@@ -60,6 +60,6 @@
       "p99"
     ]
   },
-  "cycle": 234,
+  "cycle": 238,
   "inProgress": true
 }
