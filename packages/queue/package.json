@@ -9,7 +9,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "bullmq": "^5.56.9",
+    "bullmq": "^6.1.2",
     "ioredis": "^5.8.1",
     "@zolt/contracts": "workspace:*"
   }
