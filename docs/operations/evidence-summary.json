@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-10-26T09:46:47.698Z",
+  "artifacts": [
+    {
+      "file": "alert-routing.json",
+      "status": "BLOCKED"
+    },
+    {
+      "file": "backup-restore-result.json",
+      "status": "UNREADABLE"
+    },
+    {
+      "file": "campaign-result.json",
+      "status": "UNKNOWN"
+    },
+    {
+      "file": "chaos-result.json",
+      "status": "UNREADABLE"
+    },
+    {
+      "file": "credential-rotation.json",
+      "status": "UNKNOWN"
+    },
+    {
+      "file": "dataset-manifest.json",
+      "status": "UNKNOWN"
+    },
+    {
+      "file": "dataset-manifest.template.json",
+      "status": "UNKNOWN"
+    },
+    {
+      "file": "evidence-summary.json",
+      "status": "UNKNOWN"
+    },
+    {
+      "file": "field-pilot.json",
+      "status": "BLOCKED"
+    },
+    {
+      "file": "gridflex-pilot.json",
+      "status": "UNKNOWN"
+    },
+    {
+      "file": "hil-emulator-result.json",
+      "status": "PASS"
+    },
+    {
+      "file": "hil-gridflex-result.json",
+      "status": "BLOCKED"
+    },
+    {
+      "file": "hil-physical-com7.json",
+      "status": "UNREADABLE"
+    },
+    {
+      "file": "load-10.json",
+      "status": "PASS"
+    },
+    {
+      "file": "load-100.json",
+      "status": "PASS"
+    },
+    {
+      "file": "load-1000.json",
+      "status": "PASS"
+    },
+    {
+      "file": "load-10000.json",
+      "status": "PASS"
+    },
+    {
+      "file": "managed-secrets.json",
+      "status": "BLOCKED"
+    },
+    {
+      "file": "ml-training-result.json",
+      "status": "PASS"
+    },
+    {
+      "file": "model-benchmark.json",
+      "status": "BLOCKED"
+    },
+    {
+      "file": "observability-deploy.json",
+      "status": "DEPLOYED_LOCAL"
+    },
+    {
+      "file": "pentest-commission.json",
+      "status": "NOT_COMMISSIONED"
+    },
+    {
+      "file": "physical-e2e-status.json",
+      "status": "BLOCKED"
+    },
+    {
+      "file": "physical-hil-status.json",
+      "status": "BLOCKED"
+    },
+    {
+      "file": "pitr-result.json",
+      "status": "UNREADABLE"
+    },
+    {
+      "file": "queue-durability.json",
+      "status": "PASS"
+    },
+    {
+      "file": "real-data-gate.json",
+      "status": "BLOCKED"
+    },
+    {
+      "file": "reconnect-burst.json",
+      "status": "PASS"
+    },
+    {
+      "file": "security-assessment.json",
+      "status": "PASS"
+    },
+    {
+      "file": "soak-24h.json",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "file": "soak-multiday.json",
+      "status": "UNKNOWN"
+    },
+    {
+      "file": "soak-preflight.json",
+      "status": "PASS"
+    },
+    {
+      "file": "soak-rehearsal.json",
+      "status": "PASS"
+    }
+  ],
+  "failing": [
+    "alert-routing.json",
+    "backup-restore-result.json",
+    "chaos-result.json",
+    "field-pilot.json",
+    "hil-gridflex-result.json",
+    "hil-physical-com7.json",
+    "managed-secrets.json",
+    "model-benchmark.json",
+    "physical-e2e-status.json",
+    "physical-hil-status.json",
+    "pitr-result.json",
+    "real-data-gate.json"
+  ]
+}

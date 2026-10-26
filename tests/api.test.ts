@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ZoltRecommendation, ZoltTelemetryEnvelope } from "../packages/contracts/src/index.js";
 import type { ApiDependencies } from "../apps/api/src/server.js";
 import { createTestRecommendation, createTestTelemetryEnvelope } from "./helpers/fixtures.js";
@@ -45,9 +45,20 @@ function createDependencies(): ApiDependencies {
   };
 }
 
-afterEach(() => {
+function clearBootstrapEnv(): void {
   delete process.env.ZOLT_API_KEY;
   delete process.env.ZOLT_ADVISORY_ONLY;
+  delete process.env.ZOLT_BOOTSTRAP_TENANT_ID;
+  delete process.env.ZOLT_BOOTSTRAP_PRODUCT_ID;
+  delete process.env.ZOLT_BOOTSTRAP_INSTALLATION_ID;
+}
+
+beforeEach(() => {
+  clearBootstrapEnv();
+});
+
+afterEach(() => {
+  clearBootstrapEnv();
 });
 
 describe("API routes", () => {

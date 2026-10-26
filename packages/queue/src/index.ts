@@ -155,7 +155,12 @@ export async function enqueueTelemetry(
   envelope: ZoltTelemetryEnvelope,
 ): Promise<void> {
   await telemetryQueue().add("ingest", envelope, {
-    jobId: `${envelope.tenantId}:${envelope.productId}:${envelope.installationId}:${envelope.messageId}`,
+    jobId: [
+      envelope.tenantId,
+      envelope.productId,
+      envelope.installationId,
+      envelope.messageId,
+    ].join("~"),
     priority: envelope.communicationHealth === "FAILED" ? 1 : 10,
     attempts: 5,
     backoff: {

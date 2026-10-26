@@ -52,6 +52,11 @@
     "campaign:execute": "tsx scripts/execute-campaign.ts",
     "obs:up": "docker compose up -d",
     "soak:supervise": "tsx scripts/soak-supervisor.ts",
+    "soak:provision": "tsx scripts/provision-soak-credential.ts",
+    "test:queue-durability": "tsx scripts/verify-queue-durability.ts",
+    "evidence:aggregate": "tsx scripts/aggregate-evidence.ts",
+    "opt:benchmark": "tsx scripts/benchmark-optimisation.ts",
+    "ml:anomaly-tune": "tsx scripts/tune-anomaly-thresholds.ts",
     "ml:benchmark": "tsx scripts/benchmark-models.ts",
     "ml:real-gate": "tsx scripts/real-data-gate.ts",
     "pentest:commission": "tsx scripts/commission-pentest.ts"

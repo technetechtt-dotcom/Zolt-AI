@@ -7,4 +7,5 @@ coverage
 *.tsbuildinfo
 sbom.json
 ops/secrets/store.json
+ops/load/
 docs/operations/*.jsonl

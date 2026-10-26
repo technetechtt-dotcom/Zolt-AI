@@ -40,6 +40,8 @@ describe("operational optimisation", () => {
       baselineCurtailmentKw: 0,
       recoveredEnergyKwh: 0,
       estimatedRevenueImpact: 0,
+      degradationCost: 0,
+      netRevenueImpact: 0,
       constraintsSatisfied: true,
       advisoryOnly: true,
     });

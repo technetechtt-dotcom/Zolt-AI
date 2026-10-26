@@ -1,5 +1,14 @@
 export type TwinAssetType =
-  "inverter" | "meter" | "battery" | "load" | "electrolyser" | "grid" | "other";
+  | "inverter"
+  | "meter"
+  | "battery"
+  | "load"
+  | "electrolyser"
+  | "grid"
+  | "export-point"
+  | "transformer"
+  | "weather-station"
+  | "other";
 
 export interface OperatingLimit {
   min?: number;
@@ -40,6 +49,9 @@ export interface InstallationTwin {
   simulatedState?: TwinAssetState[];
   scenarioId?: string;
   simulatedAt?: string;
+  snapshotId?: string;
+  exportPointId?: string;
+  nominalCapacityKw?: number;
 }
 
 function assertFiniteValues(values: Record<string, number>): void {
@@ -188,4 +200,72 @@ export function compareScenario(
     result[key] = { live, simulated, delta: simulated - live };
   }
   return result;
+}
+
+export function completeSiteTopology(input: {
+  tenantId: string;
+  installationId: string;
+  inverters: Array<{ id: string; capacityKw: number }>;
+  meters?: Array<{ id: string }>;
+  batteries?: Array<{ id: string; capacityKw?: number }>;
+  loads?: Array<{ id: string }>;
+  transformers?: Array<{ id: string }>;
+  exportPointId?: string;
+  weatherStationId?: string;
+}): InstallationTwin {
+  const exportPointId = input.exportPointId ?? "export-point";
+  const assets: TwinAsset[] = [
+    ...input.inverters.map((item) => ({
+      id: item.id,
+      type: "inverter" as const,
+      capacityKw: item.capacityKw,
+      ratedCapacityKw: item.capacityKw,
+    })),
+    ...(input.meters ?? [{ id: "site-meter" }]).map((item) => ({
+      id: item.id,
+      type: "meter" as const,
+    })),
+    ...(input.batteries ?? []).map((item) => ({
+      id: item.id,
+      type: "battery" as const,
+      capacityKw: item.capacityKw,
+    })),
+    ...(input.loads ?? []).map((item) => ({
+      id: item.id,
+      type: "load" as const,
+    })),
+    ...(input.transformers ?? []).map((item) => ({
+      id: item.id,
+      type: "transformer" as const,
+    })),
+    { id: exportPointId, type: "grid" },
+    { id: `${exportPointId}-meter`, type: "export-point" },
+  ];
+  if (input.weatherStationId) {
+    assets.push({ id: input.weatherStationId, type: "weather-station" });
+  }
+  const topology: TwinRelationship[] = input.inverters.map((item) => ({
+    from: item.id,
+    to: exportPointId,
+    relation: "feeds",
+  }));
+  for (const meter of input.meters ?? [{ id: "site-meter" }]) {
+    topology.push({ from: meter.id, to: exportPointId, relation: "meters" });
+  }
+  for (const battery of input.batteries ?? []) {
+    topology.push({ from: battery.id, to: exportPointId, relation: "charges" });
+  }
+  return createTwin({
+    tenantId: input.tenantId,
+    installationId: input.installationId,
+    live: true,
+    assets,
+    topology,
+    exportPointId,
+    nominalCapacityKw: input.inverters.reduce(
+      (sum, item) => sum + item.capacityKw,
+      0,
+    ),
+    snapshotId: `topology-${input.installationId}`,
+  });
 }

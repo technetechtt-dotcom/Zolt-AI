@@ -89,3 +89,9 @@ export {
   offboardTenant,
   runRetentionJobs,
 } from "./repositories/operations.js";
+export {
+  createIncident,
+  listIncidents,
+  updateIncident,
+  INCIDENT_STATUSES,
+} from "./repositories/incidents.js";

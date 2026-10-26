@@ -548,11 +548,25 @@ model Invoice {
 }
 
 model SlaIncident {
-  id          String   @id @default(cuid())
-  tenantId    String
-  title       String
-  severity    String
-  startedAt   DateTime @default(now())
-  resolvedAt  DateTime?
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  id                   String    @id @default(cuid())
+  tenantId             String
+  title                String
+  summary              String    @default("")
+  severity             String
+  status               String    @default("OPEN")
+  productId            String?
+  installationId       String?
+  assetId              String?
+  assignedToId         String?
+  alertId              String?
+  recommendationIds    Json?
+  telemetryMessageIds  Json?
+  comments             Json?
+  startedAt            DateTime  @default(now())
+  acknowledgedAt       DateTime?
+  mitigatedAt          DateTime?
+  resolvedAt           DateTime?
+  tenant               Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, status, startedAt])
 }

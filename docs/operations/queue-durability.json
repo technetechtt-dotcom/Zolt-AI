@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-10-26T09:45:25.840Z",
+  "result": "PASS",
+  "redisAof": true,
+  "appendfsync": "always during chaos probe, everysec in compose",
+  "sent": 1,
+  "processed": 1,
+  "rejected": 0,
+  "silentLoss": 0,
+  "duplicates": 0,
+  "queuedTelemetrySurvived": true,
+  "acceptedBeforeOutage": true,
+  "recoverySeconds": 7.83,
+  "operatorRestart": false,
+  "proof": "Known GridFlex messageId was accepted with 202, Redis AOF rewritten, Redis stopped and started, then the same messageId was read from PostgreSQL. sent = processed + explicitly rejected."
+}

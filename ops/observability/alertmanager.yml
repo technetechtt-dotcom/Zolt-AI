@@ -4,16 +4,21 @@ route:
   group_wait: 10s
   group_interval: 1m
   repeat_interval: 1h
+  routes:
+    - match:
+        severity: critical
+      receiver: p1-escalation
+      continue: true
 
 receivers:
   - name: default
     webhook_configs:
       - url: "http://alert-sink:9095/alerts"
         send_resolved: true
-      # Optional real destination: set the same URL in ZOLT_ALERT_WEBHOOK_URL
-      # and replace this entry before staging deploy.
-      # - url: "https://hooks.slack.com/services/replace-me"
-      #   send_resolved: true
+  - name: p1-escalation
+    webhook_configs:
+      - url: "http://alert-sink:9095/alerts"
+        send_resolved: true
 
 inhibit_rules:
   - source_matchers: ["severity=critical"]

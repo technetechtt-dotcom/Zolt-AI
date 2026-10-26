@@ -1,5 +1,10 @@
 import { createHmac, randomUUID } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
+import {
+  evaluateSoakPreflight,
+  soakShouldAbort,
+} from "./lib/soak-policy.js";
 
 function argValue(name: string): string | undefined {
   const pair = process.argv.find((item) => item.startsWith(`${name}=`));
@@ -13,12 +18,53 @@ function argValue(name: string): string | undefined {
   return undefined;
 }
 
+function loadSoakCredential(): {
+  apiKey?: string;
+  hmacSecret?: string;
+  tenantId?: string;
+  productId?: string;
+  installationId?: string;
+} {
+  const path = process.env.ZOLT_LOAD_CREDENTIAL_FILE ?? "ops/load/credential.json";
+  if (!existsSync(path)) return {};
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as {
+      apiKey?: string;
+      hmacSecret?: string;
+      tenantId?: string;
+      productId?: string;
+      installationId?: string;
+    };
+  } catch {
+    return {};
+  }
+}
+
+const soakCredential = loadSoakCredential();
 const url = process.env.ZOLT_LOAD_URL ?? "http://localhost:4001/v1/ingest/gridflex";
-const apiKey = process.env.ZOLT_LOAD_API_KEY ?? process.env.ZOLT_API_KEY;
-const hmacSecret = process.env.ZOLT_LOAD_HMAC_SECRET ?? process.env.ZOLT_INGEST_HMAC_SECRET;
-const tenantId = process.env.ZOLT_LOAD_TENANT_ID ?? "tenant-demo";
-const productId = process.env.ZOLT_LOAD_PRODUCT_ID ?? "product-demo";
-const installationId = process.env.ZOLT_LOAD_INSTALLATION_ID ?? "installation-demo";
+const apiKey =
+  process.env.ZOLT_LOAD_API_KEY ?? soakCredential.apiKey ?? process.env.ZOLT_API_KEY;
+const hmacSecret =
+  process.env.ZOLT_LOAD_HMAC_SECRET ??
+  soakCredential.hmacSecret ??
+  process.env.ZOLT_INGEST_HMAC_SECRET;
+const tenantId =
+  process.env.ZOLT_LOAD_TENANT_ID ?? soakCredential.tenantId ?? "tenant-demo";
+const productId =
+  process.env.ZOLT_LOAD_PRODUCT_ID ?? soakCredential.productId ?? "product-demo";
+const installationId =
+  process.env.ZOLT_LOAD_INSTALLATION_ID ??
+  soakCredential.installationId ??
+  "installation-demo";
+const trafficProfile = String(
+  argValue("--traffic") ?? process.env.ZOLT_LOAD_TRAFFIC ?? "steady",
+);
+const failureThreshold = Number(
+  process.env.ZOLT_SOAK_FAILURE_THRESHOLD ?? "0.001",
+);
+const preflightCount = Number(
+  argValue("--preflight") ?? process.env.ZOLT_SOAK_PREFLIGHT ?? "20",
+);
 const tier = String(argValue("--tier") ?? process.env.ZOLT_LOAD_TIER ?? "10");
 const soakMinutes = Number(argValue("--soak-minutes") ?? process.env.ZOLT_SOAK_MINUTES ?? "0");
 const reconnectEvery = Number(argValue("--reconnect-every") ?? process.env.ZOLT_RECONNECT_BURST_EVERY ?? "0");
@@ -83,7 +129,8 @@ async function send(index: number): Promise<Result> {
         "x-zolt-installation-id": installationId,
         "x-zolt-signature-ts": timestamp,
         "x-zolt-replay-key": replayKey,
-        "x-zolt-signature": signature
+        "x-zolt-signature": signature,
+        "x-zolt-load-harness": "true"
       },
       body
     });
@@ -151,7 +198,11 @@ async function sampleResources(): Promise<Record<string, unknown>> {
   };
   try {
     const health = await fetch("http://localhost:4000/v1/queues/health", {
-      headers: { "x-zolt-api-key": apiKey ?? "", "x-zolt-tenant-id": tenantId },
+      headers: {
+        "x-zolt-api-key": apiKey ?? "",
+        "x-zolt-tenant-id": tenantId,
+        "x-zolt-load-harness": "true",
+      },
       signal: AbortSignal.timeout(3000),
     });
     if (health.ok) sample.queues = await health.json();
@@ -165,6 +216,14 @@ async function sampleResources(): Promise<Record<string, unknown>> {
     sample.apiReady = ready.ok;
   } catch {
     sample.apiReady = false;
+  }
+  try {
+    const worker = await fetch("http://localhost:4003/health/ready", {
+      signal: AbortSignal.timeout(2000),
+    });
+    sample.workerReady = worker.ok;
+  } catch {
+    sample.workerReady = false;
   }
   resourceSamples.push(sample);
   if (resourceSamples.length > 96) resourceSamples.splice(0, resourceSamples.length - 48);
@@ -195,11 +254,16 @@ async function checkpoint(cycle: number): Promise<void> {
     deviceCount,
     messagesPerDevice,
     soakMinutes,
+    trafficProfile,
     reconnectEvery,
     reconnectPauseMs,
     reconnectBursts,
     cycle,
-    inProgress: soakMinutes > 0,
+    inProgress: soakMinutes > 0 && !aborted,
+    aborted: Boolean(aborted),
+    abortReason: aborted,
+    preflight,
+    failureThreshold,
     messages,
     successful,
     failed,
@@ -219,16 +283,69 @@ async function checkpoint(cycle: number): Promise<void> {
 }
 
 const reconnectCycles = Number(argValue("--cycles") ?? process.env.ZOLT_LOAD_CYCLES ?? "0");
+let aborted: string | undefined;
+let preflight:
+  | ReturnType<typeof evaluateSoakPreflight>
+  | undefined;
 
 if (soakMinutes > 0) {
+  const preflightSamples = await runBurst(
+    Math.min(100, Math.max(10, preflightCount)),
+  );
+  preflight = evaluateSoakPreflight(preflightSamples);
+  if (!preflight.ok) {
+    aborted = preflight.reason ?? "PREFLIGHT_FAILED";
+    await mkdir("docs/operations", { recursive: true });
+    await writeFile(
+      reportPath,
+      `${JSON.stringify(
+        {
+          generatedAt: new Date().toISOString(),
+          target: url,
+          soakMinutes,
+          inProgress: false,
+          aborted: true,
+          abortReason: aborted,
+          preflight,
+          messages: 0,
+          successful: 0,
+          failed: 0,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    process.stderr.write(`soak refused: ${aborted}\n`);
+    process.exit(2);
+  }
   const endAt = startedAt + soakMinutes * 60_000;
   let cycle = 0;
   while (Date.now() < endAt) {
     cycle += 1;
-    ingest(await runBurst(deviceCount * messagesPerDevice));
-    if (reconnectEvery > 0 && cycle % reconnectEvery === 0) {
+    const mixSlow = trafficProfile === "mix" && cycle % 17 === 0;
+    const mixBurst = trafficProfile === "mix" && cycle % 11 === 0;
+    const reconnectNow =
+      (reconnectEvery > 0 && cycle % reconnectEvery === 0) ||
+      (trafficProfile === "mix" && cycle % 23 === 0);
+    ingest(
+      await runBurst(
+        deviceCount * messagesPerDevice * (mixBurst ? 3 : 1),
+      ),
+    );
+    if (mixSlow) {
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+    }
+    if (reconnectNow) {
       reconnectBursts += 1;
-      await new Promise((resolve) => setTimeout(resolve, reconnectPauseMs));
+      await new Promise((resolve) =>
+        setTimeout(resolve, mixBurst ? reconnectPauseMs || 800 : reconnectPauseMs),
+      );
+    }
+    if (soakShouldAbort({ messages, failed, threshold: failureThreshold })) {
+      aborted = "FAILURE_THRESHOLD_EXCEEDED";
+      await checkpoint(cycle);
+      break;
     }
     await checkpoint(cycle);
   }
@@ -257,10 +374,15 @@ const report = {
   deviceCount,
   messagesPerDevice,
   soakMinutes,
+  trafficProfile,
   reconnectEvery,
   reconnectPauseMs,
   reconnectBursts,
   inProgress: false,
+  aborted: Boolean(aborted),
+  abortReason: aborted,
+  preflight,
+  failureThreshold,
   messages,
   successful,
   failed,
@@ -280,6 +402,10 @@ const report = {
 await mkdir("docs/operations", { recursive: true });
 await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-if (report.failed > 0 || report.latencyMs.p95 > p95BudgetMs) {
+if (
+  aborted ||
+  (soakMinutes === 0 && (report.failed > 0 || report.latencyMs.p95 > p95BudgetMs)) ||
+  (soakMinutes > 0 && report.failed / Math.max(report.messages, 1) > failureThreshold)
+) {
   process.exitCode = 1;
 }

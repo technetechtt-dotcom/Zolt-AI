@@ -115,6 +115,17 @@ export function buildGatewayApp(
       if (!tenantId || !productId || !installationId) {
         return reply.code(401).send({ code: "MISSING_INTEGRATION_IDENTITY" });
       }
+      try {
+        if (req.zoltAuth) {
+          assertIdentityBinding(req.zoltAuth, {
+            tenantId,
+            productId,
+            installationId,
+          });
+        }
+      } catch {
+        return reply.code(403).send({ code: "TENANT_MISMATCH" });
+      }
       const access = await dependencies.verifyTenantAccess({
         tenantId,
         productId,
@@ -123,15 +134,7 @@ export function buildGatewayApp(
       if (!access) {
         return reply.code(403).send({ code: "TENANT_ACCESS_DENIED" });
       }
-      const boundIdentity =
-        typeof access === "object"
-          ? access
-          : { tenantId, productId, installationId };
-      try {
-        if (req.zoltAuth) assertIdentityBinding(req.zoltAuth, boundIdentity);
-      } catch {
-        return reply.code(403).send({ code: "TENANT_MISMATCH" });
-      }
+      const boundIdentity = { tenantId, productId, installationId };
 
       const validation = dependencies.connector.validatePayload(req.body);
       if (!validation.valid) {

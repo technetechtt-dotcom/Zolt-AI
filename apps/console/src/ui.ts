@@ -57,8 +57,8 @@ export function consoleHtml(apiBase: string): string {
     const API = ${JSON.stringify(apiBase)};
     const publicPages = new Set(["#/login","#/invite","#/reset"]);
     const pages = [
-      ["#/command","Command Centre"],["#/fleet","Fleet"],["#/telemetry","Telemetry"],
-      ["#/recommendations","Recommendations"],["#/alerts","Alerts"],["#/integrations","Integrations"],
+      ["#/command","Command Centre"],["#/fleet","Fleet"],["#/assets","Assets"],["#/telemetry","Telemetry"],
+      ["#/recommendations","Recommendations"],["#/incidents","Incidents"],["#/alerts","Alerts"],["#/integrations","Integrations"],
       ["#/webhooks","Webhooks"],["#/credentials","API credentials"],["#/users","Users"],["#/audit","Audit"],
       ["#/reports","Reports"],["#/health","System health"],["#/models","Models"],["#/optimisation","Optimisation"],["#/copilot","Copilot"],["#/profile","Profile"]
     ];
@@ -228,19 +228,22 @@ export function consoleHtml(apiBase: string): string {
         }
         if (!state.token && !publicPages.has(route)) { location.hash = "#/login"; return; }
         if (route === "#/command") {
+          const centre = await api("/v1/command-centre");
           const recs = await api("/v1/recommendations?tenantId="+encodeURIComponent(state.tenantId));
           const health = await api("/v1/health/system");
           const sites = await api("/v1/installations");
-          const open = recs.filter(r=>r.status==="PROPOSED");
-          const high = open.filter(r=>r.severity==="HIGH"||r.severity==="CRITICAL");
-          const recovered = recs.reduce((sum,r)=>sum+Number(r.expectedRevenue||0),0);
+          const high = recs.filter(r=>r.status==="PROPOSED"&&(r.severity==="HIGH"||r.severity==="CRITICAL"));
           app.innerHTML = '<div class="kpis">'+
-            '<div class="kpi"><span class="muted">Sites</span><b>'+sites.length+'</b></div>'+
-            '<div class="kpi"><span class="muted">Open advisories</span><b>'+open.length+'</b></div>'+
-            '<div class="kpi"><span class="muted">High / critical</span><b>'+high.length+'</b></div>'+
-            '<div class="kpi"><span class="muted">Est. recovered revenue</span><b>'+recovered.toFixed(0)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Sites online</span><b>'+esc(centre.sitesOnline)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Live MW</span><b>'+(centre.liveMwGeneration==null?"n/a":centre.liveMwGeneration)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Export MW</span><b>'+(centre.gridExportMw==null?"n/a":centre.gridExportMw)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Curtailment MW</span><b>'+(centre.curtailmentMw==null?"n/a":centre.curtailmentMw)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Open advisories</span><b>'+esc(centre.openRecommendations)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Critical alerts</span><b>'+esc(centre.criticalAlerts)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Open incidents</span><b>'+esc(centre.openIncidents)+'</b></div>'+
+            '<div class="kpi"><span class="muted">Est. recovered</span><b>'+Number(centre.estimatedRevenueRecovered||0).toFixed(0)+'</b></div>'+
             '</div>'+
-            card("Fleet command centre", "<p class='muted'>Advisory only. Predict → Optimise → Simulate → Human approve. No plant commands.</p><table><tr><th>Site</th><th>Status</th><th>Product</th></tr>"+(sites.map(r=>"<tr><td><a class='rowlink' href='#/fleet'>"+esc(r.name)+"</a></td><td><span class='pill ok'>"+esc(r.status)+"</span></td><td>"+esc(r.product?.name||"")+"</td></tr>").join("")||"<tr><td colspan=3 class=muted>No installations</td></tr>")+"</table>")+
+            card("Fleet command centre", "<p class='muted'>Advisory only. Predict → Optimise → Simulate → Human approve. No plant commands. Live MW stays n/a until a named plant publishes telemetry.</p><table><tr><th>Site</th><th>Status</th><th>Product</th></tr>"+(sites.map(r=>"<tr><td><a class='rowlink' href='#/fleet?site="+encodeURIComponent(r.id||r.name)+"'>"+esc(r.name)+"</a></td><td><span class='pill ok'>"+esc(r.status)+"</span></td><td>"+esc(r.product?.name||"")+"</td></tr>").join("")||"<tr><td colspan=3 class=muted>No installations</td></tr>")+"</table>")+
             card("Alarm workflow", high.map(r=>"<p><span class='pill high'>"+esc(r.severity)+"</span> "+esc(r.title)+"</p>").join("") || "<p class=muted>No high-risk alarms</p>")+
             card("System health", "<pre>"+jsonHtml(health)+"</pre>");
         } else if (route === "#/fleet") {
@@ -248,7 +251,7 @@ export function consoleHtml(apiBase: string): string {
           const site = new URLSearchParams(location.hash.split("?")[1]||"").get("site");
           const selected = rows.find(r=>r.id===site||r.externalKey===site||r.name===site);
           app.innerHTML = card("Fleet / sites", "<table><tr><th>Name</th><th>Status</th><th>Product</th><th></th></tr>"+(rows.map(r=>"<tr><td>"+esc(r.name)+"</td><td><span class='pill ok'>"+esc(r.status)+"</span></td><td>"+esc(r.product?.name||"")+"</td><td><a href='#/fleet?site="+encodeURIComponent(r.id||r.name)+"'>Drill down</a></td></tr>").join("")||"<tr><td colspan=4 class=muted>No installations</td></tr>")+"</table>") +
-            (selected ? card("Site drill-down / asset health", "<p><strong>"+esc(selected.name)+"</strong> · "+esc(selected.status)+"</p><p class='muted'>Devices "+esc((selected.devices||[]).length)+" · Assets "+esc((selected.assets||[]).length)+"</p><pre>"+jsonHtml({devices:selected.devices||[], assets:selected.assets||[]})+"</pre>") : "");
+            (selected ? card("Site drill-down", "<p><strong>"+esc(selected.name)+"</strong> · "+esc(selected.status)+"</p><p class='muted'>Overview · topology · live power · inverter fleet · meter · battery · export point · weather · curtailment · recommendations · alerts · connectivity</p><p>Devices "+esc((selected.devices||[]).length)+" · Assets "+esc((selected.assets||[]).length)+"</p><pre>"+jsonHtml({topology:selected.topology||null, devices:selected.devices||[], assets:selected.assets||[]})+"</pre>") : "");
         } else if (route === "#/telemetry") {
           app.innerHTML = card("Realtime telemetry", '<form id="tel"><input name="productId" placeholder="product key"/><input name="installationId" placeholder="installation key"/><button>Stream</button></form><canvas id="chart"></canvas><p id="sim" class="warn"></p><pre id="out"></pre>');
           document.getElementById("tel").onsubmit = async (e) => {
@@ -293,17 +296,50 @@ export function consoleHtml(apiBase: string): string {
         } else if (route === "#/optimisation") {
           app.innerHTML = card("Predict → Optimise → Simulate", '<form id="opt"><input name="forecastKw" placeholder="forecast kW"/><input name="exportLimitKw" placeholder="export limit"/><input name="loadKw" placeholder="load kW"/><button>Simulate plan</button></form><pre id="out"></pre><p class="muted">Human approval required. Automatic plant execution is outside this release.</p>');
           document.getElementById("opt").onsubmit = async (e) => { e.preventDefault(); const fd=new FormData(e.target); const data=await api("/v1/simulate",{method:"POST",body:JSON.stringify(Object.fromEntries(fd))}); document.getElementById("out").textContent=JSON.stringify(data,null,2); };
+        } else if (route === "#/assets") {
+          const rows = await api("/v1/installations");
+          const assets = rows.flatMap(site => (site.assets||[]).map(asset => ({...asset, site: site.name, siteId: site.id})));
+          app.innerHTML = card("Asset drill-down", "<table><tr><th>Asset</th><th>Type</th><th>Site</th><th></th></tr>"+(assets.map(r=>"<tr><td>"+esc(r.name||r.externalRef||r.id)+"</td><td>"+esc(r.type||"")+"</td><td>"+esc(r.site)+"</td><td><a href='#/fleet?site="+encodeURIComponent(r.siteId)+"'>Open site</a></td></tr>").join("")||"<tr><td colspan=4 class=muted>No assets yet. Live telemetry creates inverter/meter records.</td></tr>")+"</table><p class='muted'>Each asset should show live telemetry, expected vs actual, efficiency, alarms, communications, firmware, health score, anomaly history and maintenance records once a named plant is connected.</p>");
         } else if (route === "#/recommendations") {
           const recs = await api("/v1/recommendations?tenantId="+encodeURIComponent(state.tenantId));
-          app.innerHTML = card("Recommendation timeline", '<div class="timeline">'+(recs.map(r => '<article><p class="muted">'+esc(r.createdAt||"")+' · <span class="pill '+esc(String(r.severity||"").toLowerCase())+'">'+esc(r.severity)+'</span> · '+esc(r.status)+'</p><h3>'+esc(r.title)+'</h3><p>'+esc(r.summary)+'</p><p>confidence '+(Number(r.confidence)*100).toFixed(0)+'% · est. revenue '+esc(r.expectedRevenue||0)+'</p><p>'+esc(r.rationale)+'</p><p class="muted">Assumptions: '+esc((r.assumptions||[]).join("; "))+'</p><p class="warn">'+esc((r.dataQualityWarnings||[]).join("; "))+'</p><button data-id="'+esc(r.id)+'" data-status="ACKNOWLEDGED">Acknowledge</button> <button data-id="'+esc(r.id)+'" data-status="APPROVED">Approve</button> <button class="danger" data-id="'+esc(r.id)+'" data-status="REJECTED">Reject</button></article>').join("") || "<p class=muted>No recommendations</p>")+"</div>");
+          app.innerHTML = card("Recommendation workflow", '<form id="recFilter" class="stack"><label>Status <input name="status" placeholder="PROPOSED"/></label><label>Type <input name="type"/></label><label>Severity <input name="severity"/></label><button>Filter</button></form>') +
+            card("Recommendation timeline", '<div class="timeline">'+(recs.map(r => '<article><p class="muted">'+esc(r.createdAt||"")+' · <span class="pill '+esc(String(r.severity||"").toLowerCase())+'">'+esc(r.severity)+'</span> · '+esc(r.status)+' · expires '+esc(r.expiresAt||"")+'</p><h3>'+esc(r.title)+'</h3><p>'+esc(r.summary)+'</p><p>confidence '+(Number(r.confidence)*100).toFixed(0)+'% · est. kWh '+esc(r.expectedEnergyKwh||0)+' · revenue '+esc(r.expectedRevenue||0)+' · carbon '+esc(r.expectedCarbonKg||0)+'</p><p>'+esc(r.rationale)+'</p><p class="muted">Assumptions: '+esc((r.assumptions||[]).join("; "))+' · Uncertainty: '+esc((r.uncertainties||[]).join("; "))+'</p><p class="warn">'+esc((r.dataQualityWarnings||[]).join("; "))+'</p><button data-id="'+esc(r.id)+'" data-status="ACKNOWLEDGED">Acknowledge</button> <button data-id="'+esc(r.id)+'" data-status="APPROVED">Approve</button> <button class="danger" data-id="'+esc(r.id)+'" data-status="REJECTED">Reject</button></article>').join("") || "<p class=muted>No recommendations</p>")+"</div>");
+          document.getElementById("recFilter").onsubmit = async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const qs = ["tenantId="+encodeURIComponent(state.tenantId)];
+            if (fd.get("status")) qs.push("status="+encodeURIComponent(fd.get("status")));
+            if (fd.get("type")) qs.push("type="+encodeURIComponent(fd.get("type")));
+            if (fd.get("severity")) qs.push("severity="+encodeURIComponent(fd.get("severity")));
+            const filtered = await api("/v1/recommendations?"+qs.join("&"));
+            document.querySelector(".timeline").innerHTML = filtered.map(r => '<article><h3>'+esc(r.title)+'</h3><p>'+esc(r.status)+' · '+esc(r.severity)+'</p></article>').join("") || "<p class=muted>No matching recommendations</p>";
+          };
           app.querySelectorAll("button[data-id]").forEach(btn => btn.onclick = async () => {
             const comment = prompt("Decision comment") || "";
             await api("/v1/recommendations/"+btn.dataset.id+"/status", { method:"PATCH", body: JSON.stringify({ tenantId: state.tenantId, status: btn.dataset.status, comment }) });
             render();
           });
+        } else if (route === "#/incidents") {
+          const rows = await api("/v1/incidents");
+          app.innerHTML = card("Incidents", "<p class='muted'>Incidents are not recommendations. Lifecycle: open → acknowledged → assigned → investigating → mitigated → resolved → post-incident review.</p><table><tr><th>Title</th><th>Severity</th><th>Status</th><th></th></tr>"+(rows.map(r=>"<tr><td>"+esc(r.title)+"</td><td>"+esc(r.severity)+"</td><td>"+esc(r.status)+"</td><td><button data-incident='"+esc(r.id)+"'>Acknowledge</button></td></tr>").join("")||"<tr><td colspan=4 class=muted>No incidents</td></tr>")+"</table>") +
+            card("Open incident", '<form id="newIncident" class="stack"><input name="title" placeholder="Title" required/><input name="severity" placeholder="HIGH" required/><textarea name="summary" placeholder="Summary"></textarea><button>Create</button></form>');
+          document.getElementById("newIncident").onsubmit = async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            await api("/v1/incidents", { method:"POST", body: JSON.stringify({ title: fd.get("title"), severity: fd.get("severity"), summary: fd.get("summary") }) });
+            render();
+          };
+          app.querySelectorAll("button[data-incident]").forEach(btn => btn.onclick = async () => {
+            await api("/v1/incidents/"+encodeURIComponent(btn.dataset.incident), { method:"PATCH", body: JSON.stringify({ status: "ACKNOWLEDGED", comment: "Acknowledged from Console" }) });
+            render();
+          });
         } else if (route === "#/alerts") {
           const recs = await api("/v1/recommendations?tenantId="+encodeURIComponent(state.tenantId)+"&status=PROPOSED");
-          app.innerHTML = card("Alerts centre", recs.filter(r=>r.severity==="HIGH"||r.severity==="CRITICAL").map(r=>"<p><strong>"+esc(r.severity)+"</strong> "+esc(r.title)+"</p>").join("") || "<p class=muted>No high-risk alerts</p>");
+          app.innerHTML = card("Alerts centre", recs.filter(r=>r.severity==="HIGH"||r.severity==="CRITICAL").map(r=>"<p><strong>"+esc(r.severity)+"</strong> "+esc(r.title)+' <button data-alert-incident="'+esc(r.id)+'">Open incident</button></p>').join("") || "<p class=muted>No high-risk alerts</p>");
+          app.querySelectorAll("button[data-alert-incident]").forEach(btn => btn.onclick = async () => {
+            await api("/v1/incidents", { method:"POST", body: JSON.stringify({ title: "Alert "+btn.dataset.alertIncident, severity: "HIGH", recommendationIds: [btn.dataset.alertIncident] }) });
+            location.hash = "#/incidents";
+          });
         } else if (route === "#/integrations") {
           app.innerHTML = card("Integrations", "<p>GridFlex connector 1.0.0. Simulated telemetry is labelled and cannot be mistaken for live plant data.</p>");
         } else if (route === "#/webhooks") {
@@ -327,7 +363,12 @@ export function consoleHtml(apiBase: string): string {
           document.getElementById("auditSearch").oninput=e=>{const query=e.target.value.toLowerCase();document.querySelectorAll("#auditTable tr").forEach((row,index)=>{if(index)row.hidden=!row.textContent.toLowerCase().includes(query);});};
           document.getElementById("auditExport").onclick=()=>{const blob=new Blob([JSON.stringify(rows,null,2)],{type:"application/json"});const link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download="zolt-audit-"+state.tenantId+".json";link.click();URL.revokeObjectURL(link.href);};
         } else if (route === "#/reports") {
-          app.innerHTML = card("Reports", "<p>Use recommendations, telemetry and audit APIs to generate shift, site and executive reports. Copilot can draft summaries without issuing plant commands.</p>");
+          const kinds = ["shift","site","fleet","curtailment","recommendation-effectiveness","incident","executive"];
+          app.innerHTML = card("Operator reports", kinds.map(kind => "<p><button data-report='"+kind+"'>"+kind+"</button></p>").join("")) + card("Report output", "<pre id='reportOut'>Select a report</pre>");
+          app.querySelectorAll("button[data-report]").forEach(btn => btn.onclick = async () => {
+            const data = await api("/v1/reports/"+encodeURIComponent(btn.dataset.report));
+            document.getElementById("reportOut").textContent = JSON.stringify(data, null, 2);
+          });
         } else if (route === "#/health") {
           const health = await api("/v1/health/system"); const queues = await api("/v1/queues/health");
           app.innerHTML = card("System / queue / connector health", "<pre>"+jsonHtml({health,queues})+"</pre>");

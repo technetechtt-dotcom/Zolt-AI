@@ -24,6 +24,8 @@ export {
   bodyLimitBytes,
   assertProductionConfiguration,
   assertTlsIfProduction,
+  assertNoDefaultCredentials,
+  rejectedDefaultCredentials,
 } from "./security.js";
 export { enforceRateLimit } from "./rate-limit.js";
 export {

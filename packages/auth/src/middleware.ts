@@ -50,6 +50,7 @@ function bootstrapPrincipal(): AuthenticatedPrincipal | null {
     permissions: ROLE_PERMISSIONS["api-integration"],
     signingSecret: process.env.ZOLT_INGEST_HMAC_SECRET,
     actorType: "API",
+    unscoped: !isProduction(),
   };
 }
 
@@ -65,9 +66,21 @@ export async function requireApiKey(
   }
 
   const tenantHint = String(req.headers["x-zolt-tenant-id"] ?? "");
-  const limit = Number(process.env.ZOLT_RATE_LIMIT_PER_MINUTE ?? 120);
+  const performanceTest =
+    !isProduction() &&
+    (process.env.ZOLT_PERFORMANCE_TEST === "true" ||
+      String(req.headers["x-zolt-load-harness"] ?? "").toLowerCase() ===
+        "true");
+  const limit = Number(
+    performanceTest
+      ? (process.env.ZOLT_PERFORMANCE_TEST_RATE_LIMIT_PER_MINUTE ?? 100_000)
+      : (process.env.ZOLT_RATE_LIMIT_PER_MINUTE ?? 120),
+  );
   const tenantLimit = Number(
-    process.env.ZOLT_TENANT_RATE_LIMIT_PER_MINUTE ?? 600,
+    performanceTest
+      ? (process.env.ZOLT_PERFORMANCE_TEST_TENANT_RATE_LIMIT_PER_MINUTE ??
+          500_000)
+      : (process.env.ZOLT_TENANT_RATE_LIMIT_PER_MINUTE ?? 600),
   );
   const allowedIp = await enforceRateLimit(
     req,

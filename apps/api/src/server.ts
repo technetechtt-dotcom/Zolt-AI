@@ -7,6 +7,7 @@ import {
   assertIdentityBinding,
   bodyLimitBytes,
   enforceRateLimit,
+  isProduction,
   requireApiKey,
   requirePermission,
   setCredentialResolver,
@@ -37,7 +38,35 @@ export interface ApiDependencies {
     tenantId: string;
     productId: string;
     installationId: string;
+    messageId?: string;
+    limit?: number;
   }) => Promise<ZoltTelemetryEnvelope[]>;
+  createIncident?: (input: {
+    tenantId: string;
+    title: string;
+    summary?: string;
+    severity: string;
+    productId?: string;
+    installationId?: string;
+    assetId?: string;
+    alertId?: string;
+    recommendationIds?: string[];
+    telemetryMessageIds?: string[];
+    actorId?: string;
+  }) => Promise<unknown>;
+  listIncidents?: (input: {
+    tenantId: string;
+    status?: string;
+    installationId?: string;
+  }) => Promise<unknown[]>;
+  updateIncident?: (input: {
+    tenantId: string;
+    incidentId: string;
+    status?: string;
+    assignedToId?: string;
+    comment?: string;
+    actorId?: string;
+  }) => Promise<unknown>;
   saveRecommendations: (recommendations: ZoltRecommendation[]) => Promise<void>;
   listRecommendations: (input: {
     tenantId: string;
@@ -399,6 +428,19 @@ export function buildApiApp(
   });
   instrumentFastify(app, "zolt-api");
   applySecurityHeaders(app);
+  app.addHook("preHandler", async (req, reply) => {
+    if (
+      !req.zoltAuth?.unscoped ||
+      req.zoltAuth.actorType !== "USER" ||
+      !isProduction()
+    ) {
+      return;
+    }
+    const reason = String(req.headers["x-zolt-access-reason"] ?? "").trim();
+    if (reason.length < 12) {
+      await reply.code(403).send({ code: "PLATFORM_ACCESS_REASON_REQUIRED" });
+    }
+  });
 
   app.get("/health/live", async () => ({
     status: "ok",
@@ -560,7 +602,7 @@ export function buildApiApp(
           ? (statusCandidate as RecommendationStatusType)
           : undefined;
       try {
-        return await dependencies.listRecommendations({
+        const rows = await dependencies.listRecommendations({
           tenantId,
           productId: query.productId ? String(query.productId) : undefined,
           installationId: query.installationId
@@ -569,6 +611,22 @@ export function buildApiApp(
           status,
           userId: req.zoltAuth?.userId,
           unrestricted: unrestrictedInstallationAccess(req.zoltAuth!),
+        });
+        const type = query.type ? String(query.type) : "";
+        const severity = query.severity ? String(query.severity) : "";
+        const assigned = query.assignedToId ? String(query.assignedToId) : "";
+        return rows.filter((row) => {
+          if (type && row.type !== type) return false;
+          if (severity && row.severity !== severity) return false;
+          if (
+            assigned &&
+            String(
+              (row as { decisionActorId?: string }).decisionActorId ?? "",
+            ) !== assigned
+          ) {
+            return false;
+          }
+          return true;
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -1404,6 +1462,7 @@ export function buildApiApp(
         tenantId,
         productId,
         installationId,
+        messageId: query.messageId ? String(query.messageId) : undefined,
       });
     },
   );
@@ -1587,9 +1646,232 @@ export function buildApiApp(
     async (req) => {
       return (
         (await dependencies.billing?.(req.zoltAuth!.tenantId)) ?? {
-          plan: "pilot",
+          plans: [
+            {
+              id: "pilot",
+              sites: 1,
+              devices: 25,
+              messagesPerMonth: 2_000_000,
+              storageGb: 25,
+              support: "email",
+            },
+            {
+              id: "standard",
+              sites: 25,
+              devices: 500,
+              messagesPerMonth: 40_000_000,
+              storageGb: 500,
+              support: "business-hours",
+            },
+            {
+              id: "enterprise",
+              sites: "unlimited",
+              devices: "unlimited",
+              messagesPerMonth: "contract",
+              storageGb: "contract",
+              support: "24x7",
+            },
+          ],
+          current: "pilot",
+          overage: {
+            extraSite: "quoted",
+            extraDevice: "quoted",
+            extraMillionMessages: "quoted",
+          },
+          provider: process.env.ZOLT_BILLING_PROVIDER ?? "invoice",
         }
       );
+    },
+  );
+
+  app.get(
+    "/v1/command-centre",
+    { preHandler: [requireApiKey, requirePermission("recommendation:read")] },
+    async (req) => {
+      const tenantId = req.zoltAuth!.tenantId;
+      const [sites, recs, incidents] = await Promise.all([
+        dependencies.listInstallations?.(
+          tenantId,
+          req.zoltAuth?.userId,
+          unrestrictedInstallationAccess(req.zoltAuth!),
+        ) ?? [],
+        dependencies.listRecommendations({
+          tenantId,
+          unrestricted: unrestrictedInstallationAccess(req.zoltAuth!),
+          userId: req.zoltAuth?.userId,
+        }),
+        dependencies.listIncidents?.({ tenantId }) ?? [],
+      ]);
+      const siteRows = Array.isArray(sites) ? sites : [];
+      const open = recs.filter((row) => row.status === "PROPOSED");
+      const critical = open.filter(
+        (row) => row.severity === "HIGH" || row.severity === "CRITICAL",
+      );
+      const accepted = recs.filter(
+        (row) => row.status === "APPROVED" || row.status === "RESOLVED",
+      );
+      return {
+        advisoryOnly: true,
+        plantExecution: false,
+        sitesOnline: siteRows.length,
+        sitesDegraded: 0,
+        openRecommendations: open.length,
+        criticalAlerts: critical.length,
+        openIncidents: (await Promise.resolve(incidents)).filter(
+          (row) =>
+            String((row as { status?: string }).status ?? "OPEN") !==
+              "RESOLVED" &&
+            String((row as { status?: string }).status ?? "OPEN") !==
+              "POST_INCIDENT_REVIEW",
+        ).length,
+        estimatedRevenueRecovered: recs.reduce(
+          (sum, row) => sum + Number(row.expectedRevenue ?? 0),
+          0,
+        ),
+        estimatedEnergyKwh: recs.reduce(
+          (sum, row) => sum + Number(row.expectedEnergyKwh ?? 0),
+          0,
+        ),
+        recommendationAcceptanceRate:
+          recs.length === 0 ? 0 : accepted.length / recs.length,
+        liveMwGeneration: null,
+        gridExportMw: null,
+        curtailmentMw: null,
+        energyLostMwh: null,
+        note: "Live MW figures require named plant telemetry. Null means not measured.",
+      };
+    },
+  );
+
+  app.get(
+    "/v1/incidents",
+    { preHandler: [requireApiKey, requirePermission("recommendation:read")] },
+    async (req) => {
+      const query = req.query as Record<string, unknown>;
+      return (
+        (await dependencies.listIncidents?.({
+          tenantId: req.zoltAuth!.tenantId,
+          status: query.status ? String(query.status) : undefined,
+          installationId: query.installationId
+            ? String(query.installationId)
+            : undefined,
+        })) ?? []
+      );
+    },
+  );
+
+  app.post(
+    "/v1/incidents",
+    { preHandler: [requireApiKey, requirePermission("recommendation:acknowledge")] },
+    async (req, reply) => {
+      if (!dependencies.createIncident) {
+        return reply.code(503).send({ code: "INCIDENTS_NOT_CONFIGURED" });
+      }
+      const body = req.body as Record<string, unknown>;
+      if (!body.title || !body.severity) {
+        return reply.code(400).send({ code: "INCIDENT_FIELDS_REQUIRED" });
+      }
+      return dependencies.createIncident({
+        tenantId: req.zoltAuth!.tenantId,
+        title: String(body.title),
+        summary: body.summary ? String(body.summary) : undefined,
+        severity: String(body.severity),
+        productId: body.productId ? String(body.productId) : undefined,
+        installationId: body.installationId
+          ? String(body.installationId)
+          : undefined,
+        assetId: body.assetId ? String(body.assetId) : undefined,
+        alertId: body.alertId ? String(body.alertId) : undefined,
+        recommendationIds: Array.isArray(body.recommendationIds)
+          ? body.recommendationIds.map(String)
+          : [],
+        telemetryMessageIds: Array.isArray(body.telemetryMessageIds)
+          ? body.telemetryMessageIds.map(String)
+          : [],
+        actorId: req.zoltAuth?.userId,
+      });
+    },
+  );
+
+  app.patch(
+    "/v1/incidents/:id",
+    { preHandler: [requireApiKey, requirePermission("recommendation:acknowledge")] },
+    async (req, reply) => {
+      if (!dependencies.updateIncident) {
+        return reply.code(503).send({ code: "INCIDENTS_NOT_CONFIGURED" });
+      }
+      const body = req.body as Record<string, unknown>;
+      try {
+        return await dependencies.updateIncident({
+          tenantId: req.zoltAuth!.tenantId,
+          incidentId: String((req.params as { id: string }).id),
+          status: body.status ? String(body.status) : undefined,
+          assignedToId: body.assignedToId ? String(body.assignedToId) : undefined,
+          comment: body.comment ? String(body.comment) : undefined,
+          actorId: req.zoltAuth?.userId,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message === "INCIDENT_NOT_FOUND") {
+          return reply.code(404).send({ code: message });
+        }
+        return reply.code(409).send({ code: message });
+      }
+    },
+  );
+
+  app.get(
+    "/v1/reports/:kind",
+    { preHandler: [requireApiKey, requirePermission("recommendation:read")] },
+    async (req, reply) => {
+      const kind = String((req.params as { kind: string }).kind);
+      const allowed = new Set([
+        "shift",
+        "site",
+        "fleet",
+        "curtailment",
+        "recommendation-effectiveness",
+        "incident",
+        "executive",
+      ]);
+      if (!allowed.has(kind)) {
+        return reply.code(400).send({ code: "UNKNOWN_REPORT" });
+      }
+      const recs = await dependencies.listRecommendations({
+        tenantId: req.zoltAuth!.tenantId,
+        unrestricted: unrestrictedInstallationAccess(req.zoltAuth!),
+        userId: req.zoltAuth?.userId,
+      });
+      const incidents =
+        (await dependencies.listIncidents?.({
+          tenantId: req.zoltAuth!.tenantId,
+        })) ?? [];
+      const approved = recs.filter((row) => row.status === "APPROVED").length;
+      const rejected = recs.filter((row) => row.status === "REJECTED").length;
+      const useful = recs.filter((row) => row.useful === true).length;
+      return {
+        kind,
+        generatedAt: new Date().toISOString(),
+        advisoryOnly: true,
+        recommendations: recs.length,
+        approved,
+        rejected,
+        useful,
+        estimatedEnergyKwh: recs.reduce(
+          (sum, row) => sum + Number(row.expectedEnergyKwh ?? 0),
+          0,
+        ),
+        estimatedRevenue: recs.reduce(
+          (sum, row) => sum + Number(row.expectedRevenue ?? 0),
+          0,
+        ),
+        estimatedCarbonKg: recs.reduce(
+          (sum, row) => sum + Number(row.expectedCarbonKg ?? 0),
+          0,
+        ),
+        incidents: incidents.length,
+        note: "Estimates until operator outcomes are recorded against named plant data.",
+      };
     },
   );
 
@@ -1706,6 +1988,9 @@ export async function startApiServer(): Promise<void> {
     saveRecommendations: database.saveRecommendations,
     listRecommendations: database.listRecommendations,
     updateRecommendationStatus: database.updateRecommendationStatus,
+    createIncident: database.createIncident,
+    listIncidents: database.listIncidents,
+    updateIncident: database.updateIncident,
     writeAuditEvent: database.writeAuditEvent,
     readinessCheck: async () => {
       try {

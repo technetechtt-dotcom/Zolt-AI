@@ -80,3 +80,13 @@ This summary does not replace counsel-reviewed DPA wording.
 - Model scores vs the fail-closed real-data gate (forecast, curtailment, anomaly, comms failure)
 - Customer decision: continue, expand, or stop
 - Explicit statement that automatic plant execution remains out of scope
+
+## Billing plans (commercial, not yet invoiced live)
+
+| Plan | Sites | Devices | Messages / month | Storage | Support |
+| --- | --- | --- | --- | --- | --- |
+| Pilot | 1 | 25 | 2,000,000 | 25 GB | email |
+| Standard | 25 | 500 | 40,000,000 | 500 GB | business hours |
+| Enterprise | contract | contract | contract | contract | 24×7 |
+
+Overage for extra sites, devices, API calls and model features is quoted. Billing provider is invoice until a payment processor is connected. Signed SLA/DPA/order form/privacy terms still require legal counsel.

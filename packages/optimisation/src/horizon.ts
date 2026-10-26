@@ -1,4 +1,4 @@
-import { optimiseSite, type DispatchPlan } from "./index.js";
+import { optimiseSite, type BatteryEconomics, type DispatchPlan } from "./index.js";
 
 export interface HorizonStepInput {
   hourUtc: number;
@@ -17,6 +17,7 @@ export interface HorizonSite {
   maximumSocPct?: number;
   flexibleLoadLimitKw?: number;
   roundTripEfficiency?: number;
+  economics?: BatteryEconomics;
 }
 
 export interface HorizonStepResult {
@@ -89,6 +90,7 @@ function sitePlan(
     maximumSocPct: Math.max(reserve + 1, maximumSocPct ?? maximum),
     flexibleLoadLimitKw: site.flexibleLoadLimitKw,
     carbonKgPerKwh: input.carbonKgPerKwh,
+    economics: site.economics,
   });
 }
 

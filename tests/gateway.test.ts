@@ -53,6 +53,10 @@ function createGatewayDependencies(): GatewayDependencies {
 
 beforeEach(() => {
   process.env.ZOLT_ALLOW_INSECURE_AUTH = "true";
+  delete process.env.ZOLT_BOOTSTRAP_TENANT_ID;
+  delete process.env.ZOLT_BOOTSTRAP_PRODUCT_ID;
+  delete process.env.ZOLT_BOOTSTRAP_INSTALLATION_ID;
+  delete process.env.ZOLT_API_KEY;
 });
 
 afterEach(() => {
@@ -154,7 +158,7 @@ describe("Gateway routes", () => {
     await app.close();
   });
 
-  it("canonicalises external keys and enforces the resolved connector scope", async () => {
+  it("binds ingest against request identity, not resolved database ids", async () => {
     const deps = createGatewayDependencies();
     deps.verifyTenantAccess = vi.fn(async () => ({
       tenantId: "tenant-1",
@@ -185,10 +189,17 @@ describe("Gateway routes", () => {
       },
     });
     expect(response.statusCode).toBe(202);
+    expect(deps.connector.transform).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        productId: "external-product-key",
+        installationId: "external-installation-key",
+      }),
+    );
     expect(deps.enqueueTelemetry).toHaveBeenCalledWith(
       expect.objectContaining({
-        productId: "product-db-id",
-        installationId: "installation-db-id",
+        productId: "external-product-key",
+        installationId: "external-installation-key",
       }),
     );
     await app.close();

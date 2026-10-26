@@ -1,0 +1,16 @@
+{
+  "executedAt": "2026-10-26T09:36:00.000Z",
+  "result": "BLOCKED",
+  "pipeline": "Inverter → RS485 → GridFlex Edge Node → network/4G → Zolt connector gateway → canonical telemetry → queue → worker → energy skill → recommendation → Console",
+  "reason": "Physical path is disabled until HIL hardware is connected. Hardware execution remains hard-coded off.",
+  "plantExecution": false,
+  "testsNotRun": [
+    "network loss",
+    "store-and-forward",
+    "Edge reboot",
+    "duplicate packets",
+    "malformed values",
+    "clock drift",
+    "reconnection"
+  ]
+}

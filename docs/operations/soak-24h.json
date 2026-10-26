@@ -1,39 +1,51 @@
 {
-  "generatedAt": "2026-10-23T11:15:58.490Z",
+  "generatedAt": "2026-10-26T10:57:02.552Z",
   "target": "http://localhost:4001/v1/ingest/gridflex",
   "simulated": true,
   "tier": "10",
-  "deviceCount": 10,
-  "messagesPerDevice": 5,
+  "deviceCount": 5,
+  "messagesPerDevice": 4,
   "soakMinutes": 1440,
+  "trafficProfile": "steady",
   "reconnectEvery": 0,
   "reconnectPauseMs": 500,
   "reconnectBursts": 0,
-  "cycle": 4,
+  "cycle": 1841,
   "inProgress": true,
-  "messages": 200,
-  "successful": 0,
-  "failed": 200,
-  "durationMs": 948.75,
-  "messagesPerSecond": 210.8,
+  "aborted": false,
+  "preflight": {
+    "attempted": 20,
+    "succeeded": 20,
+    "failed": 0,
+    "statusCodes": {
+      "202": 20
+    },
+    "ok": true
+  },
+  "failureThreshold": 0.001,
+  "messages": 36820,
+  "successful": 36820,
+  "failed": 0,
+  "durationMs": 4287856.37,
+  "messagesPerSecond": 8.59,
   "latencyMs": {
-    "p50": 42.96,
-    "p95": 124.75,
-    "p99": 156.68
+    "p50": 525.4,
+    "p95": 832.04,
+    "p99": 963.59
   },
   "statusCodes": {
-    "403": 121,
-    "429": 79
+    "202": 36820
   },
   "resources": {
-    "heapGrowthMb": 5.1,
-    "sampleCount": 4,
+    "heapGrowthMb": 9.6,
+    "sampleCount": 77,
     "growingHeap": false
   },
   "latestSample": {
-    "at": "2026-10-23T11:15:58.469Z",
-    "rssMb": 79.9,
-    "heapUsedMb": 17,
-    "apiReady": true
+    "at": "2026-10-26T10:57:02.402Z",
+    "rssMb": 71.7,
+    "heapUsedMb": 27.2,
+    "apiReady": true,
+    "workerReady": true
   }
 }

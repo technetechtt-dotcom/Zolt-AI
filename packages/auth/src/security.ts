@@ -17,7 +17,7 @@ export function applySecurityHeaders(app: FastifyInstance): void {
     }
     reply.header(
       "access-control-allow-headers",
-      "content-type, x-zolt-api-key, x-zolt-tenant-id, x-zolt-product-id, x-zolt-installation-id, x-zolt-signature, x-zolt-signature-ts, x-zolt-replay-key, x-correlation-id, authorization",
+      "content-type, x-zolt-api-key, x-zolt-tenant-id, x-zolt-product-id, x-zolt-installation-id, x-zolt-signature, x-zolt-signature-ts, x-zolt-replay-key, x-correlation-id, authorization, x-zolt-load-harness, x-zolt-access-reason",
     );
     reply.header(
       "access-control-allow-methods",
@@ -112,6 +112,51 @@ export function assertProductionConfiguration(
       errors.push(error instanceof Error ? error.message : String(error));
     }
   }
+  const rejected = rejectedDefaultCredentials();
+  if (rejected.length) {
+    errors.push(`default credentials are forbidden (${rejected.join(",")})`);
+  }
   if (errors.length)
     throw new Error(`PRODUCTION_CONFIGURATION_INVALID:${errors.join(";")}`);
+}
+
+const KNOWN_DEFAULT_CREDENTIALS: Array<{ name: string; values: string[] }> = [
+  {
+    name: "ZOLT_API_KEY",
+    values: ["dev-api-key-change-me", "change-me", "password"],
+  },
+  {
+    name: "ZOLT_INGEST_HMAC_SECRET",
+    values: ["dev-hmac-secret-change-me"],
+  },
+  {
+    name: "ZOLT_MASTER_KEY",
+    values: ["dev-master-key-not-for-production"],
+  },
+  {
+    name: "ZOLT_SEED_ADMIN_PASSWORD",
+    values: ["ChangeMeNow!23"],
+  },
+  {
+    name: "ZOLT_SEED_DEVELOPER_PASSWORD",
+    values: ["ZoltMaintain!24"],
+  },
+];
+
+export function rejectedDefaultCredentials(
+  env: NodeJS.ProcessEnv = process.env,
+): string[] {
+  return KNOWN_DEFAULT_CREDENTIALS.filter((item) =>
+    item.values.includes(String(env[item.name] ?? "")),
+  ).map((item) => item.name);
+}
+
+export function assertNoDefaultCredentials(
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (!isProduction()) return;
+  const rejected = rejectedDefaultCredentials(env);
+  if (rejected.length) {
+    throw new Error(`DEFAULT_CREDENTIALS_FORBIDDEN:${rejected.join(",")}`);
+  }
 }

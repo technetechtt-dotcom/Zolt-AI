@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-10-26T09:36:37.193Z",
+  "dataset": "emulator-synthetic",
+  "realNamedPlant": false,
+  "selected": {
+    "threshold": 0.33,
+    "precision": 0.8,
+    "recall": 1,
+    "f1": 0.8889,
+    "falsePositiveRate": 0.25,
+    "expectedCost": 1,
+    "meanLeadTimeMinutes": 11.5
+  },
+  "byCategory": {
+    "voltage": {
+      "threshold": 0.22,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0,
+      "falsePositiveRate": 0,
+      "expectedCost": 0,
+      "meanLeadTimeMinutes": 0
+    },
+    "comms": {
+      "threshold": 0.12,
+      "precision": 0.5,
+      "recall": 1,
+      "f1": 0.6667,
+      "falsePositiveRate": 1,
+      "expectedCost": 1,
+      "meanLeadTimeMinutes": 4
+    },
+    "inverter": {
+      "threshold": 0.12,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "falsePositiveRate": 0,
+      "expectedCost": 0,
+      "meanLeadTimeMinutes": 11
+    },
+    "temperature": {
+      "threshold": 0.33,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "falsePositiveRate": 0,
+      "expectedCost": 0,
+      "meanLeadTimeMinutes": 20
+    }
+  },
+  "note": "Emulator tuning is engineering evidence only. Production qualification stays fail-closed until a named plant dataset exists."
+}

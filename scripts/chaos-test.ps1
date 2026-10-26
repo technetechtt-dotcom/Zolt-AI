@@ -37,24 +37,50 @@ try {
 } catch { $recsBefore = @() }
 $survived = $false
 $duplicates = 0
+$accepted = $false
+$rejected = 0
 $messageId = "chaos-survive-" + [guid]::NewGuid().ToString("N").Substring(0, 12)
 if ($Target -eq "redis") {
   try {
-    $now = (Get-Date).ToUniversalTime().ToString("o")
-    $body = @{
-      schemaVersion = "1.0"
-      tenantId = "tenant-demo"
-      productId = "product-demo"
-      installationId = "installation-demo"
-      deviceId = "chaos-device"
+    docker exec zolt-redis redis-cli CONFIG SET appendfsync always | Out-Null
+    $hmac = $env:ZOLT_INGEST_HMAC_SECRET
+    if (-not $hmac) { $hmac = "dev-hmac-secret-change-me" }
+    $nowIso = (Get-Date).ToUniversalTime().ToString("o")
+    $payload = @{
       messageId = $messageId
-      sourceTimestamp = $now
-      receivedTimestamp = $now
+      nodeId = "chaos-device"
+      timestamp = $nowIso
+      sequence = 1
       simulated = $true
-      measurements = @(@{ key = "powerKw"; value = 12.5; quality = "GOOD" })
-    } | ConvertTo-Json -Depth 6
-    Invoke-RestMethod -Uri "http://localhost:4000/v1/telemetry" -Method POST -Headers $headers -ContentType "application/json" -Body $body -TimeoutSec 8 | Out-Null
-  } catch {}
+      vendor = "chaos"
+      model = "probe"
+      communicationHealth = "HEALTHY"
+      readings = @{ powerKw = 12.5; voltage = 400; frequencyHz = 50 }
+    } | ConvertTo-Json -Compress -Depth 6
+    $timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds().ToString()
+    $replayKey = [guid]::NewGuid().ToString()
+    $toSign = "$timestamp.$replayKey.$payload"
+    $hmacsha = New-Object System.Security.Cryptography.HMACSHA256
+    $hmacsha.Key = [Text.Encoding]::UTF8.GetBytes($hmac)
+    $hash = $hmacsha.ComputeHash([Text.Encoding]::UTF8.GetBytes($toSign))
+    $signature = ([BitConverter]::ToString($hash) -replace "-", "").ToLowerInvariant()
+    $ingestHeaders = @{
+      "x-zolt-api-key" = $apiKey
+      "x-zolt-tenant-id" = "tenant-demo"
+      "x-zolt-product-id" = "product-demo"
+      "x-zolt-installation-id" = "installation-demo"
+      "x-zolt-signature-ts" = $timestamp
+      "x-zolt-replay-key" = $replayKey
+      "x-zolt-signature" = $signature
+      "x-zolt-load-harness" = "true"
+    }
+    $response = Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:4001/v1/ingest/gridflex" -Method POST -Headers $ingestHeaders -ContentType "application/json" -Body $payload -TimeoutSec 8
+    $accepted = $response.StatusCode -eq 202
+    docker exec zolt-redis redis-cli BGREWRITEAOF | Out-Null
+    Start-Sleep -Seconds 2
+  } catch {
+    $accepted = $false
+  }
 }
 
 $started = Get-Date
@@ -90,11 +116,16 @@ $finished = Get-Date
 $ready = $apiReady -and $gatewayReady -and $workerReady
 
 if ($ready -and $Target -eq "redis") {
-  Start-Sleep -Seconds 3
-  try {
-    $rows = @(Invoke-RestMethod -Uri "http://localhost:4000/v1/telemetry?tenantId=tenant-demo&productId=product-demo&installationId=installation-demo" -Headers $headers -TimeoutSec 8)
-    $survived = [bool]($rows | Where-Object { $_.messageId -eq $messageId })
-  } catch { $survived = $false }
+  $deadlineSurvive = (Get-Date).AddSeconds(20)
+  while ((Get-Date) -lt $deadlineSurvive) {
+    try {
+      $rows = @(Invoke-RestMethod -Uri "http://localhost:4000/v1/telemetry?tenantId=tenant-demo&productId=product-demo&installationId=installation-demo&messageId=$messageId" -Headers $headers -TimeoutSec 8)
+      $survived = [bool]($rows | Where-Object { $_.messageId -eq $messageId })
+      if ($survived) { break }
+    } catch { $survived = $false }
+    Start-Sleep -Seconds 2
+  }
+  if (-not $accepted) { $rejected = 1 }
 }
 
 try {
@@ -117,6 +148,8 @@ $entry = [ordered]@{
   gatewayReady = $gatewayReady
   workerReady = $workerReady
   queuedTelemetrySurvived = $(if ($Target -eq "redis") { $survived } else { $null })
+  acceptedBeforeOutage = $(if ($Target -eq "redis") { $accepted } else { $null })
+  rejectedExplicitly = $(if ($Target -eq "redis") { $rejected } else { $null })
   duplicateRecommendations = $duplicates
   recoverySeconds = [Math]::Round(($finished - $started).TotalSeconds - $OutageSeconds, 2)
   operatorRestart = $false
@@ -136,9 +169,11 @@ $runs = @($runs | Where-Object { $_.target -ne $Target }) + $entry
 $allRecovered = -not ($runs | Where-Object { -not $_.recovered })
 $budgetOk = -not ($runs | Where-Object { $_.recoverySeconds -gt $RecoveryBudgetSeconds })
 $dupOk = -not ($runs | Where-Object { $_.duplicateRecommendations -gt 0 })
+$queueOk = -not ($runs | Where-Object { $_.target -eq "redis" -and $_.queuedTelemetrySurvived -ne $true })
+$operatorOk = -not ($runs | Where-Object { $_.operatorRestart -eq $true })
 $result = [ordered]@{
   executedAt = $entry.executedAt
-  result = $(if ($allRecovered -and $budgetOk -and $dupOk) { "PASS" } else { "FAIL" })
+  result = $(if ($allRecovered -and $budgetOk -and $dupOk -and $queueOk -and $operatorOk) { "PASS" } else { "FAIL" })
   recoveryBudgetSeconds = $RecoveryBudgetSeconds
   runs = $runs
 }

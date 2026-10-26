@@ -1,0 +1,15 @@
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "summary" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'OPEN';
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "productId" TEXT;
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "installationId" TEXT;
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "assetId" TEXT;
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "assignedToId" TEXT;
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "alertId" TEXT;
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "recommendationIds" JSONB;
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "telemetryMessageIds" JSONB;
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "comments" JSONB;
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "acknowledgedAt" TIMESTAMP(3);
+ALTER TABLE "SlaIncident" ADD COLUMN IF NOT EXISTS "mitigatedAt" TIMESTAMP(3);
+
+CREATE INDEX IF NOT EXISTS "SlaIncident_tenantId_status_startedAt_idx"
+  ON "SlaIncident"("tenantId", "status", "startedAt");

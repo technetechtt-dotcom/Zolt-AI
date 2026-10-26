@@ -1,0 +1,16 @@
+{
+  "executedAt": "2026-10-26T09:36:00.000Z",
+  "result": "FAIL",
+  "physicalExecution": false,
+  "reason": "No Waveshare ESP32-S3/SIM7670X Edge Node, genuine USB-RS485 adapter, or named supported inverter is attached. Prior COM7 was a Huawei modem. Physical HIL remains unexecuted.",
+  "requiredEvidence": [
+    "Edge Node serial",
+    "adapter model",
+    "inverter make/model/firmware",
+    "slave ID",
+    "baud/parity/stop bits",
+    "register-map revision",
+    "wiring/termination",
+    "raw Modbus frames"
+  ]
+}

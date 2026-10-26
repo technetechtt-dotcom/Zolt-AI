@@ -37,6 +37,7 @@ const INJECTION_PATTERNS = [
   /developer message|system prompt|hidden instruction/i,
   /execute.{0,20}(command|tool|shell|sql)/i,
   /act as.{0,30}(administrator|root|system)/i,
+  /modbus|write register|setpoint|close breaker|open breaker|trip inverter/i,
 ];
 
 function safeText(value: unknown, maximum = 1_000): string {
@@ -112,6 +113,13 @@ export async function askCopilot(input: {
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score);
   const selected = ranked.slice(0, 5).map((item) => item.doc);
+  const operationalClaim =
+    /(kwh|mw\b|curtail|inverter|export limit|recommendation|forecast|soc)/i.test(
+      input.question,
+    );
+  if (operationalClaim && selected.length === 0) {
+    throw new Error("SOURCE_REQUIRED");
+  }
   const evidence =
     selected.length === 0
       ? "I do not have enough permission-filtered, tenant-bound evidence to answer."

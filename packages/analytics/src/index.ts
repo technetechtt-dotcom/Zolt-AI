@@ -218,3 +218,5 @@ export function solarForecastWithConfidence(input: {
 }
 
 export * from "./train.js";
+export * from "./predictive-maintenance.js";
+export * from "./anomaly-cost.js";

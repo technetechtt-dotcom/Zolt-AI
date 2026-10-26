@@ -152,6 +152,7 @@ export async function listTelemetryForInstallation(input: {
   productId: string;
   installationId: string;
   limit?: number;
+  messageId?: string;
 }): Promise<ZoltTelemetryEnvelope[]> {
   const ids = await ensureInstallationIdentity({
     tenantKey: input.tenantId,
@@ -165,6 +166,7 @@ export async function listTelemetryForInstallation(input: {
       productId: ids.productId,
       installationId: ids.installationId,
       archivedAt: null,
+      ...(input.messageId ? { messageId: input.messageId } : {}),
     },
     orderBy: { sourceTimestamp: "desc" },
     take: input.limit ?? 500,
